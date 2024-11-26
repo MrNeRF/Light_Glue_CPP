@@ -62,6 +62,8 @@ set(ALIKED_HEADERS
         include/DKD.hpp
         include/SDDH.hpp
         include/blocks.hpp
+	    include/LightGlue.hpp
+        include/LightGlueModules.hpp
         include/get_patches.hpp
         include/input_padder.hpp
         include/deform_conv2d.h
@@ -70,6 +72,11 @@ set(ALIKED_HEADERS
 )
 
 set(ALIKED_SOURCES
+        src/LightGlue.cpp
+        src/LightGlueAssignment.cpp
+        src/LightGlueBlocks.cpp
+        src/LightGlueModules.cpp
+        src/LightGlueTransformer.cpp
         src/blocks.cpp
         src/ALIKED.cpp
         src/DKD.cpp

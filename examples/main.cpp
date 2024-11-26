@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
     cv::VideoWriter video_writer;
     bool is_writer_initialized = false;
 
-// Iterate over the images
+    // Iterate over the images
     for (size_t i = 0; i < image_loader.size(); i++)
     {
         cv::Mat img = image_loader[i];
@@ -226,12 +226,11 @@ int main(int argc, char* argv[]) {
             break; // Quit on 'q' or 'ESC'
     }
 
-// Release video writer
+    // Release video writer
     if (is_writer_initialized)
         video_writer.release();
 
     std::cout << "Video saved as output_video.avi" << std::endl;
-
 
     std::cout << "Finished!" << std::endl;
     std::cout << "Press any key to exit!" << std::endl;
