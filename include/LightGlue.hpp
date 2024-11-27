@@ -75,9 +75,7 @@ private:
     std::vector<std::shared_ptr<TransformerLayer>> transformers_;
     std::vector<std::shared_ptr<MatchAssignment>> log_assignment_;
     std::vector<std::shared_ptr<TokenConfidence>> token_confidence_;
-
-    // Registered buffers
-    torch::Tensor confidence_thresholds_;
+    std::vector<float> confidence_thresholds_;
 
     static const std::unordered_map<std::string, int> pruning_keypoint_thresholds_;
     void load_parameters(const std::string& pt_path);

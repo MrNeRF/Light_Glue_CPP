@@ -97,15 +97,11 @@ LightGlue::LightGlue(const std::string& feature_type, const LightGlueConfig& con
     }
 
     // Register confidence thresholds buffer
-    std::vector<float> thresholds;
-    thresholds.reserve(config_.n_layers);
+    confidence_thresholds_.reserve(config_.n_layers);
     for (int i = 0; i < config_.n_layers; ++i)
     {
-        thresholds.push_back(confidence_threshold(i));
+        confidence_thresholds_.push_back(confidence_threshold(i));
     }
-
-    register_buffer("confidence_thresholds",
-                    torch::tensor(thresholds, torch::kFloat32));
 
     // Load weights if specified
     if (!config_.weights.empty())
@@ -254,15 +250,22 @@ bool LightGlue::check_if_stop(
     int layer_index,
     int num_points) {
 
+    std::cout << "confidences0: " << confidences0.sizes() << std::endl;
+    std::cout << "confidences1: " << confidences1.sizes() << std::endl;
+    std::cout << "layer_index: " << layer_index << std::endl;
+    std::cout << "num_points: " << num_points << std::endl;
     // Concatenate confidences
     auto confidences = torch::cat({confidences0, confidences1}, -1);
+    std::cout << "confidences: " << confidences.sizes() << std::endl;
 
     // Get threshold for current layer
     auto threshold = confidence_thresholds_[layer_index];
+    std::cout << "threshold: " << threshold << std::endl;
 
     // Calculate ratio of confident points
     auto ratio_confident = 1.0f -
                            (confidences < threshold).to(torch::kFloat32).sum().item<float>() / num_points;
+    std::cout << "ratio_confident: " << ratio_confident << std::endl;
 
     return ratio_confident > config_.depth_confidence;
 }
@@ -366,7 +369,12 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
         // Early stopping check
         if (do_early_stop)
         {
+            std::cout << "desc0: " << desc0.sizes() << std::endl;
+            std::cout << "desc1: " << desc1.sizes() << std::endl;
             std::tie(token0, token1) = token_confidence_[i]->forward(desc0, desc1);
+
+            std::cout << "token0: " << token0.value().sizes() << std::endl;
+            std::cout << "token1: " << token1.value().sizes() << std::endl;
             if (check_if_stop(
                     token0.value().index({torch::indexing::Slice(), torch::indexing::Slice(torch::indexing::None, m)}),
                     token1.value().index({torch::indexing::Slice(), torch::indexing::Slice(torch::indexing::None, n)}),
