@@ -243,7 +243,7 @@ void ALIKED::init_layers(std::string_view model_name) {
 
 void ALIKED::load_weights(std::string_view model_name) {
     std::vector<std::filesystem::path> search_paths = {
-        std::filesystem::path(ALIKED_MODELS_DIR) / (std::string(model_name) + ".pt"),
+        std::filesystem::path(LIGHTGLUE_MODELS_DIR) / (std::string(model_name) + ".pt"),
         std::filesystem::current_path() / "models" / (std::string(model_name) + ".pt"),
         std::filesystem::current_path() / (std::string(model_name) + ".pt")};
 

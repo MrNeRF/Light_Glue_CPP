@@ -91,7 +91,7 @@ LightGlue::LightGlue(const std::string& feature_type, const LightGlueConfig& con
     // Load weights if specified
     if (!config_.weights.empty())
     {
-        load_weights(feature_type);
+        load_weights(config_.weights);
     }
 
     // Move to device if CUDA is available
@@ -461,15 +461,37 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
 }
 
 void LightGlue::load_weights(const std::string& feature_type) {
-    auto model_path = "../models/" + config_.weights + ".pt";
+    std::vector<std::filesystem::path> search_paths = {
+        std::filesystem::path(LIGHTGLUE_MODELS_DIR) / (std::string(feature_type) + ".pt"),
+        std::filesystem::current_path() / "models" / (std::string(feature_type) + ".pt"),
+        std::filesystem::current_path() / (std::string(feature_type) + ".pt")};
 
-    if (!fs::exists(model_path))
+    std::filesystem::path model_path;
+    bool found = false;
+
+    for (const auto& path : search_paths)
     {
-        throw std::runtime_error("Cannot find pretrained model: " + model_path);
+        if (std::filesystem::exists(path))
+        {
+            model_path = path;
+            found = true;
+            break;
+        }
     }
 
-    std::cout << "Loading " << model_path << std::endl;
-    load_parameters(model_path);
+    if (!found)
+    {
+        std::string error_msg = "Cannot find pretrained model. Searched in:\n";
+        for (const auto& path : search_paths)
+        {
+            error_msg += "  " + path.string() + "\n";
+        }
+        error_msg += "Please place the model file in one of these locations.";
+        throw std::runtime_error(error_msg);
+    }
+
+    std::cout << "Loading model from: " << model_path << std::endl;
+    load_parameters(model_path.string());
 }
 
 void LightGlue::load_parameters(const std::string& pt_path) {
