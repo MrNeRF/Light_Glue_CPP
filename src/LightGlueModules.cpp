@@ -46,9 +46,9 @@ std::tuple<torch::Tensor, torch::Tensor> TokenConfidence::forward(
 Attention::Attention(bool allow_flash) {
     // TODO: fix this
     // enable_flash_ = allow_flash && FLASH_AVAILABLE;
-    //has_sdp_ = torch::cuda::is_available() &&
+    // has_sdp_ = torch::cuda::is_available() &&
     //           torch::cuda::is_available(); // &&
-                                            // torch::().major >= 8;
+    // torch::().major >= 8;
     enable_flash_ = false;
     // if (enable_flash_) {
     //     torch::cuda::set_device(torch::cuda::current_device());
@@ -58,8 +58,7 @@ Attention::Attention(bool allow_flash) {
 torch::Tensor Attention::forward(
     const torch::Tensor& q,
     const torch::Tensor& k,
-    const torch::Tensor& v,
-    const torch::optional<torch::Tensor>& mask) {
+    const torch::Tensor& v) {
 
     // Handle empty tensors
     if (q.size(-2) == 0 || k.size(-2) == 0)
@@ -77,23 +76,16 @@ torch::Tensor Attention::forward(
             auto args_v = v.to(torch::kHalf).contiguous();
 
             auto result = torch::scaled_dot_product_attention(
-                args_q, args_k, args_v,
-                mask.has_value() ? mask.value() : torch::optional<torch::Tensor>());
+                args_q, args_k, args_v);
 
             result = result.to(q.dtype());
-            return mask.has_value() ? result.nan_to_num() : result;
+            return result;
         }
     }
 
     // Fall back to manual implementation
     auto scale = 1.0f / sqrt(q.size(-1));
     auto sim = torch::einsum("...id,...jd->...ij", {q, k}) * scale;
-
-    if (mask.has_value())
-    {
-        sim.masked_fill_(~mask.value(), -INFINITY);
-    }
-
     auto attn = torch::softmax(sim, -1);
     return torch::einsum("...ij,...jd->...id", {attn, v});
 }

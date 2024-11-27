@@ -13,12 +13,12 @@ class MatchAssignment;
 
 struct LightGlueConfig {
     std::string name = "lightglue";
-    int input_dim = 256;
+    int input_dim = 128;
     int descriptor_dim = 256;
     bool add_scale_ori = false;
     int n_layers = 9;
     int num_heads = 4;
-    bool flash = true;
+    bool flash = false;
     bool mp = false;
     float depth_confidence = 0.95f;
     float width_confidence = 0.99f;
@@ -41,8 +41,8 @@ public:
 
 private:
     // Helper functions
-    torch::Tensor normalize_keypoints(const torch::Tensor& kpts,
-                                      const torch::optional<torch::Tensor>& size = torch::nullopt);
+    static torch::Tensor normalize_keypoints(const torch::Tensor& kpts,
+                                             const torch::optional<torch::Tensor>& size = torch::nullopt);
 
     std::tuple<torch::Tensor, torch::Tensor> pad_to_length(
         const torch::Tensor& x, int64_t length);
@@ -79,8 +79,6 @@ private:
     // Registered buffers
     torch::Tensor confidence_thresholds_;
 
-    // Static configuration
-    std::vector<int> static_lengths_;
     static const std::unordered_map<std::string, int> pruning_keypoint_thresholds_;
     void load_parameters(const std::string& pt_path);
     std::vector<char> get_the_bytes(const std::string& filename);

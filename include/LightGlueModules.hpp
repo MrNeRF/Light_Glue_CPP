@@ -37,8 +37,7 @@ public:
     torch::Tensor forward(
         const torch::Tensor& q,
         const torch::Tensor& k,
-        const torch::Tensor& v,
-        const torch::optional<torch::Tensor>& mask = torch::nullopt);
+        const torch::Tensor& v);
 
 private:
     bool enable_flash_;
@@ -55,8 +54,7 @@ public:
 
     torch::Tensor forward(
         const torch::Tensor& x,
-        const torch::Tensor& encoding,
-        const torch::optional<torch::Tensor>& mask = torch::nullopt);
+        const torch::Tensor& encoding);
 
 private:
     int embed_dim_;
@@ -98,17 +96,7 @@ public:
         const torch::Tensor& desc0,
         const torch::Tensor& desc1,
         const torch::Tensor& encoding0,
-        const torch::Tensor& encoding1,
-        const torch::optional<torch::Tensor>& mask0 = torch::nullopt,
-        const torch::optional<torch::Tensor>& mask1 = torch::nullopt);
-
-    std::tuple<torch::Tensor, torch::Tensor> masked_forward(
-        const torch::Tensor& desc0,
-        const torch::Tensor& desc1,
-        const torch::Tensor& encoding0,
-        const torch::Tensor& encoding1,
-        const torch::Tensor& mask0,
-        const torch::Tensor& mask1);
+        const torch::Tensor& encoding1);
 
 private:
     std::shared_ptr<SelfBlock> self_attn_;

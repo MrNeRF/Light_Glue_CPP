@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Using device: " << (device.is_cuda() ? "CUDA" : "CPU") << std::endl;
 
         // Initialize models
-        auto extractor = std::make_shared<ALIKED>("aliked-n32", device.str());
+        auto extractor = std::make_shared<ALIKED>("aliked-n16", device.str());
         auto matcher = std::make_shared<LightGlue>();
 
         // Move matcher to device
@@ -98,8 +98,10 @@ int main(int argc, char* argv[]) {
 
         // Match features
         std::cout << "Matching features..." << std::endl;
-        feats0.insert("image_size", torch::tensor({img0.cols, img0.rows}, torch::kFloat32));
-        feats1.insert("image_size", torch::tensor({img1.cols, img1.rows}, torch::kFloat32));
+        feats0.insert("image_size",
+                      torch::tensor({static_cast<float>(img0.cols), static_cast<float>(img0.rows)}, torch::kFloat32).unsqueeze(0));
+        feats1.insert("image_size",
+                      torch::tensor({static_cast<float>(img1.cols), static_cast<float>(img1.rows)}, torch::kFloat32).unsqueeze(0));
         auto matches01 = matcher->forward(feats0, feats1);
 
         // Get matches and scores

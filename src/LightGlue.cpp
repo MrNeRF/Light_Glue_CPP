@@ -22,8 +22,9 @@ std::string map_python_to_cpp(const std::string& python_name) {
     size_t pos = std::min({pos_transformer, pos_assignment, pos_confidence});
     // Replace ".<digit>" with "<digit>"
     size_t dot_pos = cpp_name.find_first_of("0123456789", pos);
-    if (dot_pos != std::string::npos && cpp_name[dot_pos - 1] == '.') {
-        cpp_name.erase(dot_pos - 1, 1);  // Remove the dot before the number
+    if (dot_pos != std::string::npos && cpp_name[dot_pos - 1] == '.')
+    {
+        cpp_name.erase(dot_pos - 1, 1); // Remove the dot before the number
     }
 
     return cpp_name;
@@ -136,29 +137,19 @@ torch::Tensor LightGlue::normalize_keypoints(
     const torch::optional<torch::Tensor>& size) {
 
     torch::Tensor size_tensor;
-    if (!size.has_value()) {
+    if (!size.has_value())
+    {
         // Compute the size as the range of keypoints
         size_tensor = 1 + std::get<0>(torch::max(kpts, /*dim=*/-2)) - std::get<0>(torch::min(kpts, /*dim=*/-2));
-    } else {
+    } else
+    {
         // If size is provided but not a tensor, convert it to a tensor
-        size_tensor = size.value().to(kpts.device()).to(kpts.dtype());
+        size_tensor = size.value().to(kpts);
     }
 
-    // Ensure size_tensor matches the dtype and device of kpts
-    size_tensor = size_tensor.to(kpts);
-
     // Compute shift and scale
-    auto shift = size_tensor / 2;                              // Shape: [..., 2]
-    auto scale = std::get<0>(torch::max(size_tensor, /*dim=*/-1)) / 2; // Shape: [...]
-
-    // Normalize keypoints
-    std::cout << std::get<0>(torch::max(size_tensor, /*dim=*/-1)) << std::endl;
-    std::cout << size_tensor << "\n";
-    std::cout << scale;
-    std::cout << "kpts: " << kpts.sizes() << "\n";
-    std::cout << "s: " << size_tensor.sizes() << "\n";
-    std::cout << "shift: " << shift.sizes() << "\n";
-    std::cout << "scale: " << scale.sizes() << "\n";
+    auto shift = size_tensor / 2;
+    auto scale = std::get<0>(size_tensor.max(-1)) / 2;
 
     return (kpts - shift.unsqueeze(-2)) / scale.unsqueeze(-1).unsqueeze(-1);
 }
@@ -282,10 +273,10 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
 
     // Extract keypoints and descriptors
     // TODO: Batching
-    auto kpts0 = data0.at("keypoints");
-    auto kpts1 = data1.at("keypoints");
-    auto desc0 = data0.at("descriptors").detach().contiguous();
-    auto desc1 = data1.at("descriptors").detach().contiguous();
+    auto kpts0 = data0.at("keypoints").unsqueeze(0);
+    auto kpts1 = data1.at("keypoints").unsqueeze(0);
+    auto desc0 = data0.at("descriptors").detach().contiguous().unsqueeze(0);
+    auto desc1 = data1.at("descriptors").detach().contiguous().unsqueeze(0);
 
     // Get batch size and point counts
     int64_t b = kpts0.size(0);
@@ -302,6 +293,8 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
     // Normalize keypoints
     kpts0 = normalize_keypoints(kpts0, size0).clone();
     kpts1 = normalize_keypoints(kpts1, size1).clone();
+    std::cout << "size of kpts0: " << kpts0.sizes() << std::endl;
+    std::cout << "size of kpts1: " << kpts1.sizes() << std::endl;
 
     // Add scale and orientation if configured
     if (config_.add_scale_ori)
@@ -323,21 +316,6 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
         desc1 = desc1.to(torch::kHalf);
     }
 
-    // Initialize masks and handle padding for compilation
-    torch::optional<torch::Tensor> mask0, mask1;
-    int64_t c = std::max(m, n);
-    bool do_compile = !static_lengths_.empty() && c <= *std::max_element(static_lengths_.begin(), static_lengths_.end());
-
-    if (do_compile)
-    {
-        auto kn = *std::lower_bound(static_lengths_.begin(), static_lengths_.end(), c);
-        std::tie(desc0, mask0) = pad_to_length(desc0, kn);
-        std::tie(desc1, mask1) = pad_to_length(desc1, kn);
-        // auto dummy_mask = torch::ones({1}, torch::TensorOptions().dtype(torch::kBool).device(device_));
-        std::tie(kpts0, std::ignore) = pad_to_length(kpts0, kn);
-        std::tie(kpts1, std::ignore) = pad_to_length(kpts1, kn);
-    }
-
     // Project descriptors if needed
     if (config_.input_dim != config_.descriptor_dim)
     {
@@ -350,9 +328,9 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
     auto encoding1 = posenc_->forward(kpts1);
 
     // Initialize pruning if enabled
-    bool do_early_stop = config_.depth_confidence > 0;
-    bool do_point_pruning = config_.width_confidence > 0 && !do_compile;
-    auto pruning_th = pruning_keypoint_thresholds_.at(
+    const bool do_early_stop = config_.depth_confidence > 0.f;
+    const bool do_point_pruning = config_.width_confidence > 0.f;
+    const auto pruning_th = pruning_keypoint_thresholds_.at(
         config_.flash ? "flash" : device_.is_cuda() ? "cuda"
                                                     : "cpu");
 
@@ -374,8 +352,13 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
             break;
 
         // Process through transformer layer
+        std::cout << "desc0: " << desc0.sizes() << std::endl;
+        std::cout << "encoding0: " << encoding0.sizes() << std::endl;
+        std::cout << "desc1: " << desc1.sizes() << std::endl;
+        std::cout << "encoding1: " << encoding1.sizes() << std::endl;
+
         std::tie(desc0, desc1) = transformers_[i]->forward(
-            desc0, desc1, encoding0, encoding1, mask0, mask1);
+            desc0, desc1, encoding0, encoding1);
 
         if (i == config_.n_layers - 1)
             continue;

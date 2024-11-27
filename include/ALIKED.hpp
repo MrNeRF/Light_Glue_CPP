@@ -30,7 +30,7 @@ public:
                     std::string_view device = "cuda",
                     int top_k = -1,
                     float scores_th = 0.2,
-                    int n_limit = 5000);
+                    int n_limit = 20000);
 
     // Move semantics for tensor operations
     std::tuple<torch::Tensor, torch::Tensor>

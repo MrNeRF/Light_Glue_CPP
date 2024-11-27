@@ -6,13 +6,13 @@ SelfBlock::SelfBlock(int embed_dim, int num_heads, bool flash, bool bias)
       num_heads_(num_heads),
       head_dim_(embed_dim / num_heads),
       Wqkv_(torch::nn::Linear(torch::nn::LinearOptions(embed_dim, 3 * embed_dim).bias(bias))),
+      inner_attn_(std::make_shared<Attention>(flash)),
       out_proj_(torch::nn::Linear(torch::nn::LinearOptions(embed_dim, embed_dim).bias(bias))),
       ffn_(torch::nn::Sequential(
-               torch::nn::Linear(torch::nn::LinearOptions(2 * embed_dim, 2 * embed_dim).bias(bias)),
-               torch::nn::LayerNorm(torch::nn::LayerNormOptions({2 * embed_dim}).elementwise_affine(true)),
-               torch::nn::GELU(),
-               torch::nn::Linear(torch::nn::LinearOptions(2 * embed_dim, embed_dim).bias(bias))
-      )) {
+          torch::nn::Linear(torch::nn::LinearOptions(2 * embed_dim, 2 * embed_dim).bias(bias)),
+          torch::nn::LayerNorm(torch::nn::LayerNormOptions({2 * embed_dim}).elementwise_affine(true)),
+          torch::nn::GELU(),
+          torch::nn::Linear(torch::nn::LinearOptions(2 * embed_dim, embed_dim).bias(bias)))) {
     register_module("Wqkv", Wqkv_);
     register_module("out_proj", out_proj_);
     register_module("ffn", ffn_);
@@ -35,8 +35,7 @@ torch::Tensor SelfBlock::apply_cached_rotary_emb(
 
 torch::Tensor SelfBlock::forward(
     const torch::Tensor& x,
-    const torch::Tensor& encoding,
-    const torch::optional<torch::Tensor>& mask) {
+    const torch::Tensor& encoding) {
 
     // Project to QKV
     auto qkv = Wqkv_->forward(x);
@@ -48,11 +47,16 @@ torch::Tensor SelfBlock::forward(
     auto v = qkv.select(-1, 2);
 
     // Apply rotary embeddings
+
+    std::cout << "encoding: " << encoding.sizes() << std::endl;
+    std::cout << "encoding dims: " << encoding.dim() << std::endl;
+    std::cout << "q: " << q.sizes() << std::endl;
+    std::cout << "q dims: " << q.dim() << std::endl;
     q = apply_cached_rotary_emb(encoding, q);
     k = apply_cached_rotary_emb(encoding, k);
 
     // Apply attention
-    auto context = inner_attn_->forward(q, k, v, mask);
+    auto context = inner_attn_->forward(q, k, v);
 
     // Project output and apply residual connection
     auto message = out_proj_->forward(
@@ -119,11 +123,8 @@ std::tuple<torch::Tensor, torch::Tensor> CrossBlock::forward(
     if (flash_ && x0.device().is_cuda())
     {
         // Use flash attention
-        auto transposed_mask = mask.has_value() ? torch::optional<torch::Tensor>(mask.value().transpose(-1, -2))
-                                                : torch::optional<torch::Tensor>(torch::nullopt);
-
-        m0 = flash_->forward(qk0, qk1, v1, mask);
-        m1 = flash_->forward(qk1, qk0, v0, transposed_mask);
+        m0 = flash_->forward(qk0, qk1, v1);
+        m1 = flash_->forward(qk1, qk0, v0);
     } else
     {
         // Manual attention computation
