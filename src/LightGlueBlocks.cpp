@@ -8,9 +8,11 @@ SelfBlock::SelfBlock(int embed_dim, int num_heads, bool flash, bool bias)
       Wqkv_(torch::nn::Linear(torch::nn::LinearOptions(embed_dim, 3 * embed_dim).bias(bias))),
       out_proj_(torch::nn::Linear(torch::nn::LinearOptions(embed_dim, embed_dim).bias(bias))),
       ffn_(torch::nn::Sequential(
-          torch::nn::Linear(torch::nn::LinearOptions(embed_dim, 4 * embed_dim).bias(bias)),
-          torch::nn::ReLU(),
-          torch::nn::Linear(torch::nn::LinearOptions(4 * embed_dim, embed_dim).bias(bias)))) {
+               torch::nn::Linear(torch::nn::LinearOptions(2 * embed_dim, 2 * embed_dim).bias(bias)),
+               torch::nn::LayerNorm(torch::nn::LayerNormOptions({2 * embed_dim}).elementwise_affine(true)),
+               torch::nn::GELU(),
+               torch::nn::Linear(torch::nn::LinearOptions(2 * embed_dim, embed_dim).bias(bias))
+      )) {
     register_module("Wqkv", Wqkv_);
     register_module("out_proj", out_proj_);
     register_module("ffn", ffn_);

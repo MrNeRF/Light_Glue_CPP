@@ -11,6 +11,24 @@
 
 namespace fs = std::filesystem;
 
+std::string map_python_to_cpp(const std::string& python_name) {
+    std::string cpp_name = python_name;
+
+    // Replace "transformers" with "transformer"
+    size_t pos_transformer = cpp_name.find("transformers");
+    size_t pos_assignment = cpp_name.find("log_assignment");
+    size_t pos_confidence = cpp_name.find("token_confidence");
+
+    size_t pos = std::min({pos_transformer, pos_assignment, pos_confidence});
+    // Replace ".<digit>" with "<digit>"
+    size_t dot_pos = cpp_name.find_first_of("0123456789", pos);
+    if (dot_pos != std::string::npos && cpp_name[dot_pos - 1] == '.') {
+        cpp_name.erase(dot_pos - 1, 1);  // Remove the dot before the number
+    }
+
+    return cpp_name;
+}
+
 // Static member initialization
 const std::unordered_map<std::string, int> LightGlue::pruning_keypoint_thresholds_ = {
     {"cpu", -1},
@@ -59,7 +77,7 @@ LightGlue::LightGlue(const std::string& feature_type, const LightGlueConfig& con
             config_.flash);
 
         transformers_.push_back(layer);
-        register_module("transformer_" + std::to_string(i), layer);
+        register_module("transformers" + std::to_string(i), layer);
     }
 
     // Initialize assignment and token confidence layers
@@ -67,13 +85,13 @@ LightGlue::LightGlue(const std::string& feature_type, const LightGlueConfig& con
     {
         auto assign = std::make_shared<MatchAssignment>(config_.descriptor_dim);
         log_assignment_.push_back(assign);
-        register_module("assignment_" + std::to_string(i), assign);
+        register_module("log_assignment" + std::to_string(i), assign);
 
         if (i < config_.n_layers - 1)
         {
             auto conf = std::make_shared<TokenConfidence>(config_.descriptor_dim);
             token_confidence_.push_back(conf);
-            register_module("confidence_" + std::to_string(i), conf);
+            register_module("token_confidence" + std::to_string(i), conf);
         }
     }
 
@@ -525,7 +543,7 @@ void LightGlue::load_parameters(const std::string& pt_path) {
 
     for (const auto& w : weights)
     {
-        const auto name = w.key().toStringRef();
+        const auto name = map_python_to_cpp(w.key().toStringRef());
         const auto& param = w.value().toTensor();
 
         // Try parameters first
@@ -552,6 +570,7 @@ void LightGlue::load_parameters(const std::string& pt_path) {
                 it->second.copy_(param);
             } else
             {
+                std::cout << "buffer name: " << name << "Expected: " << it->second.sizes() << ", Got: " << param.sizes() << std::endl;
                 throw std::runtime_error(
                     "Shape mismatch for buffer: " + name +
                     " Expected: " + std::to_string(it->second.numel()) +
