@@ -36,9 +36,6 @@ public:
     std::tuple<torch::Tensor, torch::Tensor>
     extract_dense_map(torch::Tensor image) &&;
 
-    std::tuple<torch::Tensor, torch::Tensor>
-    extract_dense_map(const torch::Tensor& image) &;
-
     torch::Dict<std::string, torch::Tensor>
     forward(torch::Tensor image) &&;
 

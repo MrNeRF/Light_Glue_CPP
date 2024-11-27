@@ -46,10 +46,10 @@ std::tuple<torch::Tensor, torch::Tensor> TokenConfidence::forward(
 Attention::Attention(bool allow_flash) {
     // TODO: fix this
     // enable_flash_ = allow_flash && FLASH_AVAILABLE;
-    has_sdp_ = torch::cuda::is_available() &&
-               torch::cuda::is_available(); // &&
+    //has_sdp_ = torch::cuda::is_available() &&
+    //           torch::cuda::is_available(); // &&
                                             // torch::().major >= 8;
-
+    enable_flash_ = false;
     // if (enable_flash_) {
     //     torch::cuda::set_device(torch::cuda::current_device());
     // }

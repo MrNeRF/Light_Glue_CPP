@@ -135,18 +135,32 @@ torch::Tensor LightGlue::normalize_keypoints(
     const torch::Tensor& kpts,
     const torch::optional<torch::Tensor>& size) {
 
-    torch::Tensor s;
-    if (!size.has_value())
-    {
-        s = 1 + std::get<0>(torch::max(kpts, -2)) - std::get<0>(torch::min(kpts, -2));
-    } else
-    {
-        s = size.value().to(kpts.dtype());
+    torch::Tensor size_tensor;
+    if (!size.has_value()) {
+        // Compute the size as the range of keypoints
+        size_tensor = 1 + std::get<0>(torch::max(kpts, /*dim=*/-2)) - std::get<0>(torch::min(kpts, /*dim=*/-2));
+    } else {
+        // If size is provided but not a tensor, convert it to a tensor
+        size_tensor = size.value().to(kpts.device()).to(kpts.dtype());
     }
 
-    auto shift = s / 2;
-    auto scale = std::get<0>(torch::max(s, -1)) / 2;
-    return (kpts - shift.unsqueeze(-2)) / scale.unsqueeze(-2).unsqueeze(-1);
+    // Ensure size_tensor matches the dtype and device of kpts
+    size_tensor = size_tensor.to(kpts);
+
+    // Compute shift and scale
+    auto shift = size_tensor / 2;                              // Shape: [..., 2]
+    auto scale = std::get<0>(torch::max(size_tensor, /*dim=*/-1)) / 2; // Shape: [...]
+
+    // Normalize keypoints
+    std::cout << std::get<0>(torch::max(size_tensor, /*dim=*/-1)) << std::endl;
+    std::cout << size_tensor << "\n";
+    std::cout << scale;
+    std::cout << "kpts: " << kpts.sizes() << "\n";
+    std::cout << "s: " << size_tensor.sizes() << "\n";
+    std::cout << "shift: " << shift.sizes() << "\n";
+    std::cout << "scale: " << scale.sizes() << "\n";
+
+    return (kpts - shift.unsqueeze(-2)) / scale.unsqueeze(-1).unsqueeze(-1);
 }
 
 std::tuple<torch::Tensor, torch::Tensor> LightGlue::pad_to_length(
@@ -267,6 +281,7 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
     const torch::Dict<std::string, torch::Tensor>& data1) {
 
     // Extract keypoints and descriptors
+    // TODO: Batching
     auto kpts0 = data0.at("keypoints");
     auto kpts1 = data1.at("keypoints");
     auto desc0 = data0.at("descriptors").detach().contiguous();

@@ -2,8 +2,8 @@
 
 MatchAssignment::MatchAssignment(int dim)
     : dim_(dim),
-      matchability_(torch::nn::Linear(dim, 1)), // Adjust the dimensions as needed
-      final_proj_(torch::nn::Linear(dim, dim))  // Adjust the dimensions as needed
+      matchability_(torch::nn::Linear(torch::nn::LinearOptions(dim_, 1).bias(true))), // Adjust the dimensions as needed
+      final_proj_(torch::nn::LinearOptions(dim_, dim_).bias(true))  // Adjust the dimensions as needed
 {
     register_module("matchability", matchability_);
     register_module("final_proj", final_proj_);

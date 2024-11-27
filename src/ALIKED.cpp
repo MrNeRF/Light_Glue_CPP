@@ -101,12 +101,6 @@ ALIKED::extract_dense_map(torch::Tensor image) && {
     return std::make_tuple(std::move(feature_map), std::move(score_map));
 }
 
-std::tuple<torch::Tensor, torch::Tensor>
-ALIKED::extract_dense_map(const torch::Tensor& image) & {
-    auto image_copy = image.clone();
-    return std::move(*this).extract_dense_map(std::move(image_copy));
-}
-
 torch::Dict<std::string, torch::Tensor>
 ALIKED::forward(torch::Tensor image) && {
 

@@ -98,6 +98,8 @@ int main(int argc, char* argv[]) {
 
         // Match features
         std::cout << "Matching features..." << std::endl;
+        feats0.insert("image_size", torch::tensor({img0.cols, img0.rows}, torch::kFloat32));
+        feats1.insert("image_size", torch::tensor({img1.cols, img1.rows}, torch::kFloat32));
         auto matches01 = matcher->forward(feats0, feats1);
 
         // Get matches and scores
