@@ -85,17 +85,23 @@ void draw_matches_and_prune(cv::Mat& img1, cv::Mat& img2,
     // Get number of matches from the second dimension
     int num_matches = matches_cpu.size(1);
 
+    const float min_score_threshold = 0.1f;
     // Draw matches
     for (int i = 0; i < num_matches; i++)
     {
         // Get the match index directly
         int64_t idx = matches_cpu[0][i].item<int64_t>();
+        int64_t idx0 = i;
+        int64_t idx1 = idx;
 
-        // Each index represents a pair of corresponding points
-        int64_t idx0 = i;   // index in kpts0
-        int64_t idx1 = idx; // index in kpts1
+        // Get the score for this match
+        float score = scores_cpu[0][i].item<float>();
 
-        std::cout << "Processing match " << i << ": idx0 = " << idx0 << ", idx1 = " << idx1 << std::endl;
+        // Skip low confidence matches
+        if (score < min_score_threshold)
+        {
+            continue;
+        }
 
         // Debug keypoint indices
         if (idx0 >= kpts0_cpu.size(0) || idx1 >= kpts1_cpu.size(0))
@@ -112,32 +118,28 @@ void draw_matches_and_prune(cv::Mat& img1, cv::Mat& img2,
         cv::Point2f pt1(x0, y0);
         cv::Point2f pt2(x1 + img1.cols, y1);
 
-        // Access scores with correct indexing
-        float score = scores_cpu[0][i].item<float>();
-        std::cout << "Score for match " << i << ": " << score << std::endl;
-
-        cv::Scalar color(0, 255 * score, 0); // Line color based on match score
-
+        // Draw the match only if score is above threshold
+        cv::Scalar color(0, 255 * score, 0);
         cv::line(output, pt1, pt2, color, 1, cv::LINE_AA);
         cv::circle(output, pt1, 3, color, -1, cv::LINE_AA);
         cv::circle(output, pt2, 3, color, -1, cv::LINE_AA);
     }
 
     // Visualize pruning
-    for (int i = 0; i < kpts0_cpu.size(0); i++)
-    {
-        float x0 = kpts0_cpu[i][0].item<float>();
-        float y0 = kpts0_cpu[i][1].item<float>();
-        cv::Scalar color = cm_prune(prune0_cpu[0][i].item<float>(), max_prune0);
-        cv::circle(output, cv::Point2f(x0, y0), 5, color, -1, cv::LINE_AA);
-    }
-    for (int i = 0; i < kpts1_cpu.size(0); i++)
-    {
-        float x1 = kpts1_cpu[i][0].item<float>() + img1.cols;
-        float y1 = kpts1_cpu[i][1].item<float>();
-        cv::Scalar color = cm_prune(prune1_cpu[0][i].item<float>(), max_prune1);
-        cv::circle(output, cv::Point2f(x1, y1), 5, color, -1, cv::LINE_AA);
-    }
+    // for (int i = 0; i < kpts0_cpu.size(0); i++)
+    //{
+    //    float x0 = kpts0_cpu[i][0].item<float>();
+    //    float y0 = kpts0_cpu[i][1].item<float>();
+    //    cv::Scalar color = cm_prune(prune0_cpu[0][i].item<float>(), max_prune0);
+    //    cv::circle(output, cv::Point2f(x0, y0), 5, color, -1, cv::LINE_AA);
+    //}
+    // for (int i = 0; i < kpts1_cpu.size(0); i++)
+    //{
+    //    float x1 = kpts1_cpu[i][0].item<float>() + img1.cols;
+    //    float y1 = kpts1_cpu[i][1].item<float>();
+    //    cv::Scalar color = cm_prune(prune1_cpu[0][i].item<float>(), max_prune1);
+    //    cv::circle(output, cv::Point2f(x1, y1), 5, color, -1, cv::LINE_AA);
+    //}
 
     // Add text annotation
     std::string text = "Stopped after " + std::to_string(stop_layer) + " layers";
