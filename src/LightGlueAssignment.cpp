@@ -9,7 +9,7 @@ MatchAssignment::MatchAssignment(int dim)
     register_module("final_proj", final_proj_);
 }
 
-std::tuple<torch::Tensor, torch::Tensor> MatchAssignment::forward(
+torch::Tensor MatchAssignment::forward(
     const torch::Tensor& desc0,
     const torch::Tensor& desc1) {
 
@@ -23,25 +23,55 @@ std::tuple<torch::Tensor, torch::Tensor> MatchAssignment::forward(
     mdesc0 = mdesc0 * scale;
     mdesc1 = mdesc1 * scale;
 
-    // Compute similarity matrix
-    auto sim = torch::einsum("bmd,bnd->bmn", {mdesc0, mdesc1});
+    // Log shapes and statistics
+    std::cout << "mdesc0 shape: " << mdesc0.sizes()
+              << ", mean: " << mdesc0.mean().item<float>()
+              << ", std: " << mdesc0.std().item<float>() << std::endl;
+    std::cout << "mdesc1 shape: " << mdesc1.sizes()
+              << ", mean: " << mdesc1.mean().item<float>()
+              << ", std: " << mdesc1.std().item<float>() << std::endl;
 
-    // Get matchability scores
+    auto sim = torch::einsum("bmd,bnd->bmn", {mdesc0, mdesc1});
+    std::cout << "sim shape: " << sim.sizes()
+              << ", mean: " << sim.mean().item<float>()
+              << ", std: " << sim.std().item<float>() << std::endl;
+
     auto z0 = matchability_->forward(desc0);
     auto z1 = matchability_->forward(desc1);
+    std::cout << "z0 shape: " << z0.sizes()
+              << ", mean: " << z0.mean().item<float>()
+              << ", std: " << z0.std().item<float>() << std::endl;
+    std::cout << "z1 shape: " << z1.sizes()
+              << ", mean: " << z1.mean().item<float>()
+              << ", std: " << z1.std().item<float>() << std::endl;
 
-    // Compute the assignment matrix
     auto scores = sigmoid_log_double_softmax(sim, z0, z1);
+    std::cout << "scores shape: " << scores.sizes()
+              << ", mean: " << scores.mean().item<float>()
+              << ", std: " << scores.std().item<float>() << std::endl;
 
-    return std::make_tuple(scores, sim);
+    return scores;
 }
 
 torch::Tensor MatchAssignment::get_matchability(const torch::Tensor& desc) {
-    return torch::sigmoid(matchability_->forward(desc)).squeeze(-1);
+    // Debug input tensor
+    auto weight = matchability_->weight.data();
+    auto bias = matchability_->bias.data();
+    std::cout << "matchability weight mean: " << weight.mean().item<float>()
+              << ", std: " << weight.std().item<float>() << std::endl;
+    std::cout << "matchability bias mean: " << bias.mean().item<float>()
+              << ", std: " << bias.std().item<float>() << std::endl;
+
+    auto result = torch::sigmoid(matchability_->forward(desc)).squeeze(-1);
+
+    // Debug output tensor
+    std::cout << "get_matchability -> Output shape: " << result.sizes()
+              << ", mean: " << result.mean().item<float>()
+              << ", std: " << result.std().item<float>() << std::endl;
+
+    return result;
 }
 
-// Helper function to compute sigmoid log double softmax
-// This would typically be in the main LightGlue class but is needed here
 torch::Tensor MatchAssignment::sigmoid_log_double_softmax(
     const torch::Tensor& sim,
     const torch::Tensor& z0,
@@ -51,29 +81,23 @@ torch::Tensor MatchAssignment::sigmoid_log_double_softmax(
     auto m = sim.size(1);
     auto n = sim.size(2);
 
-    // Compute log sigmoid terms
     auto certainties = torch::log_sigmoid(z0) +
                        torch::log_sigmoid(z1).transpose(1, 2);
-
-    // Compute log softmax scores
     auto scores0 = torch::log_softmax(sim, 2);
     auto scores1 = torch::log_softmax(
                        sim.transpose(-1, -2).contiguous(), 2)
                        .transpose(-1, -2);
 
-    // Create output tensor
     auto scores = torch::full(
         {batch_size, m + 1, n + 1}, 0.0f,
         torch::TensorOptions().device(sim.device()).dtype(sim.dtype()));
 
-    // Fill in the scores
     scores.index_put_(
         {torch::indexing::Slice(),
          torch::indexing::Slice(torch::indexing::None, m),
          torch::indexing::Slice(torch::indexing::None, n)},
         scores0 + scores1 + certainties);
 
-    // Handle unmatched points
     scores.index_put_(
         {torch::indexing::Slice(),
          torch::indexing::Slice(torch::indexing::None, -1),
@@ -85,6 +109,10 @@ torch::Tensor MatchAssignment::sigmoid_log_double_softmax(
          m,
          torch::indexing::Slice(torch::indexing::None, -1)},
         torch::log_sigmoid(-z1.squeeze(-1)));
+
+    std::cout << "sigmoid_log_double_softmax -> scores shape: " << scores.sizes()
+              << ", mean: " << scores.mean().item<float>()
+              << ", std: " << scores.std().item<float>() << std::endl;
 
     return scores;
 }

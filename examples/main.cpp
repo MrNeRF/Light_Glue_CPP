@@ -26,8 +26,11 @@ cv::Mat load_image(const std::string& path) {
 void draw_matches(cv::Mat& img1, cv::Mat& img2,
                   const torch::Tensor& kpts0, const torch::Tensor& kpts1,
                   const torch::Tensor& matches, const torch::Tensor& scores) {
-
     // Create output image
+    std::cout << "kpts0 shape: " << kpts0.sizes() << std::endl;
+    std::cout << "kpts1 shape: " << kpts1.sizes() << std::endl;
+    std::cout << "matches shape: " << matches.sizes() << std::endl;
+    std::cout << "scores shape: " << scores.sizes() << std::endl;
     int height = std::max(img1.rows, img2.rows);
     int width = img1.cols + img2.cols;
     cv::Mat output(height, width, CV_8UC3);
@@ -36,7 +39,7 @@ void draw_matches(cv::Mat& img1, cv::Mat& img2,
     img1.copyTo(output(cv::Rect(0, 0, img1.cols, img1.rows)));
     img2.copyTo(output(cv::Rect(img1.cols, 0, img2.cols, img2.rows)));
 
-    // Draw matches
+    // Move tensors to CPU and access data
     auto kpts0_cpu = kpts0.cpu();
     auto kpts1_cpu = kpts1.cpu();
     auto matches_cpu = matches.cpu();
@@ -44,26 +47,32 @@ void draw_matches(cv::Mat& img1, cv::Mat& img2,
 
     for (int i = 0; i < matches_cpu.size(0); i++)
     {
-        int idx0 = matches_cpu[i][0].item<int64_t>();
-        int idx1 = matches_cpu[i][1].item<int64_t>();
+        // Access match indices
+        int64_t idx0 = matches_cpu[i][0].item<int64_t>();
+        int64_t idx1 = matches_cpu[i][1].item<int64_t>();
 
-        cv::Point2f pt1(kpts0_cpu[idx0][0].item<float>(), kpts0_cpu[idx0][1].item<float>());
-        cv::Point2f pt2(kpts1_cpu[idx1][0].item<float>() + img1.cols, kpts1_cpu[idx1][1].item<float>());
+        // Get keypoint coordinates
+        float x0 = kpts0_cpu[idx0][0].item<float>();
+        float y0 = kpts0_cpu[idx0][1].item<float>();
+        float x1 = kpts1_cpu[idx1][0].item<float>();
+        float y1 = kpts1_cpu[idx1][1].item<float>();
 
-        // Color based on score
+        cv::Point2f pt1(x0, y0);
+        cv::Point2f pt2(x1 + img1.cols, y1);
+
+        // Access score and define color
         float score = scores_cpu[idx0].item<float>();
         cv::Scalar color(0, 255 * score, 0);
 
+        // Draw match
         cv::line(output, pt1, pt2, color, 1, cv::LINE_AA);
         cv::circle(output, pt1, 3, color, -1, cv::LINE_AA);
         cv::circle(output, pt2, 3, color, -1, cv::LINE_AA);
     }
 
-    // Show result
+    // Show and save the result
     cv::imshow("Matches", output);
     cv::waitKey(0);
-
-    // Save result
     cv::imwrite("matches.png", output);
 }
 

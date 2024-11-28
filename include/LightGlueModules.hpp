@@ -113,7 +113,7 @@ public:
         const torch::Tensor& z0,
         const torch::Tensor& z1);
 
-    std::tuple<torch::Tensor, torch::Tensor> forward(
+    torch::Tensor forward(
         const torch::Tensor& desc0,
         const torch::Tensor& desc1);
 

@@ -163,12 +163,13 @@ ALIKED::run(cv::Mat& img_rgb) {
 
     // Convert keypoints from normalized coordinates to image coordinates
     auto kpts = pred.at("keypoints");
+    TORCH_CHECK(pred.erase("keypoints"), "Failed to remove 'keypoints' from output dict");
     const auto h = static_cast<float>(float_img.rows);
     const auto w = static_cast<float>(float_img.cols);
     const auto wh = torch::tensor({w - 1.0f, h - 1.0f}, kpts.options());
     kpts = wh * (kpts + 1) / 2;
-
-    pred.insert("keypoints", std::move(kpts));
+    auto [iter, success] = pred.insert("keypoints", kpts);
+    TORCH_CHECK(success, "Failed to insert 'keypoints' into output dict");
     return pred;
 }
 

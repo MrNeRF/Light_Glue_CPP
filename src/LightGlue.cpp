@@ -281,6 +281,21 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
     auto desc0 = data0.at("descriptors").detach().contiguous().unsqueeze(0);
     auto desc1 = data1.at("descriptors").detach().contiguous().unsqueeze(0);
 
+    std::cout << "desc0 shape: " << desc0.sizes()
+              << ", mean: " << desc0.mean().item<float>()
+              << ", std: " << desc0.std().item<float>() << std::endl;
+    std::cout << "desc1 shape: " << desc1.sizes()
+              << ", mean: " << desc1.mean().item<float>()
+              << ", std: " << desc1.std().item<float>() << std::endl;
+
+    std::cout << "kpts0 shape: " << kpts0.sizes()
+              << ", mean: " << kpts0.mean().item<float>()
+              << ", std: " << kpts0.std().item<float>() << std::endl;
+
+    std::cout << "kpts1 shape: " << kpts1.sizes()
+              << ", mean: " << kpts1.mean().item<float>()
+              << ", std: " << kpts1.std().item<float>() << std::endl;
+
     // Get batch size and point counts
     int64_t b = kpts0.size(0);
     int64_t m = kpts0.size(1);
@@ -293,11 +308,24 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
     if (data1.contains("image_size"))
         size1 = data1.at("image_size");
 
+    std::cout << "kpts0 shape: " << kpts0.sizes()
+              << ", mean: " << kpts0.mean().item<float>()
+              << ", std: " << kpts0.std().item<float>() << std::endl;
+
+    std::cout << "kpts1 shape: " << kpts1.sizes()
+              << ", mean: " << kpts1.mean().item<float>()
+              << ", std: " << kpts1.std().item<float>() << std::endl;
     // Normalize keypoints
     kpts0 = normalize_keypoints(kpts0, size0).clone();
     kpts1 = normalize_keypoints(kpts1, size1).clone();
-    std::cout << "size of kpts0: " << kpts0.sizes() << std::endl;
-    std::cout << "size of kpts1: " << kpts1.sizes() << std::endl;
+
+    std::cout << "kpts0 shape: " << kpts0.sizes()
+              << ", mean: " << kpts0.mean().item<float>()
+              << ", std: " << kpts0.std().item<float>() << std::endl;
+
+    std::cout << "kpts1 shape: " << kpts1.sizes()
+              << ", mean: " << kpts1.mean().item<float>()
+              << ", std: " << kpts1.std().item<float>() << std::endl;
 
     // Add scale and orientation if configured
     if (config_.add_scale_ori)
@@ -312,6 +340,13 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
                            -1);
     }
 
+    std::cout << "kpts0 shape: " << kpts0.sizes()
+              << ", mean: " << kpts0.mean().item<float>()
+              << ", std: " << kpts0.std().item<float>() << std::endl;
+
+    std::cout << "kpts1 shape: " << kpts1.sizes()
+              << ", mean: " << kpts1.mean().item<float>()
+              << ", std: " << kpts1.std().item<float>() << std::endl;
     // Convert to fp16 if mixed precision is enabled
     if (config_.mp && device_.is_cuda())
     {
@@ -325,10 +360,22 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
         desc0 = input_proj_->forward(desc0);
         desc1 = input_proj_->forward(desc1);
     }
+    std::cout << "desc0 shape: " << desc0.sizes()
+              << ", mean: " << desc0.mean().item<float>()
+              << ", std: " << desc0.std().item<float>() << std::endl;
+    std::cout << "desc1 shape: " << desc1.sizes()
+              << ", mean: " << desc1.mean().item<float>()
+              << ", std: " << desc1.std().item<float>() << std::endl;
 
     // Generate positional encodings
     auto encoding0 = posenc_->forward(kpts0);
     auto encoding1 = posenc_->forward(kpts1);
+    std::cout << "encoding0 shape: " << encoding0.sizes()
+              << ", mean: " << encoding0.mean().item<float>()
+              << ", std: " << encoding0.std().item<float>() << std::endl;
+    std::cout << "encoding1 shape: " << encoding1.sizes()
+              << ", mean: " << encoding1.mean().item<float>()
+              << ", std: " << encoding1.std().item<float>() << std::endl;
 
     // Initialize pruning if enabled
     const bool do_early_stop = config_.depth_confidence > 0.f;
@@ -384,30 +431,111 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
             }
         }
 
-        // Point pruning
+        std::cout << "Before pruning:" << std::endl;
+        std::cout << "desc0 shape: " << desc0.sizes()
+                  << ", mean: " << desc0.mean().item<float>()
+                  << ", std: " << desc0.std().item<float>() << std::endl;
+        std::cout << "desc1 shape: " << desc1.sizes()
+                  << ", mean: " << desc1.mean().item<float>()
+                  << ", std: " << desc1.std().item<float>() << std::endl;
+
         if (do_point_pruning && desc0.size(-2) > pruning_th)
         {
             auto scores0 = log_assignment_[i]->get_matchability(desc0);
+            std::cout << "scores0 shape: " << scores0.sizes()
+                      << ", mean: " << scores0.mean().item<float>()
+                      << ", std: " << scores0.std().item<float>() << std::endl;
+
             auto prunemask0 = get_pruning_mask(token0, scores0, i);
+            std::cout << "prunemask0 shape: " << prunemask0.sizes()
+                      << ", num_true: " << prunemask0.sum().item<int>()
+                      << ", mean: " << prunemask0.to(torch::kFloat32).mean().item<float>() << std::endl;
+
+            if (prunemask0.dtype() != torch::kBool)
+            {
+                prunemask0 = prunemask0.to(torch::kBool);
+            }
+
             auto where_result = torch::where(prunemask0);
             auto keep0 = where_result[1];
-            ind0 = ind0.index_select(1, keep0);
-            desc0 = desc0.index_select(1, keep0);
-            encoding0 = encoding0.index_select(-2, keep0);
-            prune0.index_put_({torch::indexing::Slice(), ind0}, prune0.index({torch::indexing::Slice(), ind0}) + 1);
+            std::cout << "keep0 indices: " << keep0.sizes()
+                      << ", num_kept: " << keep0.numel() << std::endl;
+
+            if (keep0.numel() > 0)
+            {
+                ind0 = ind0.index_select(1, keep0);
+                std::cout << "ind0 after index_select: " << ind0.sizes() << std::endl;
+
+                desc0 = desc0.index_select(1, keep0);
+                std::cout << "desc0 after index_select: " << desc0.sizes()
+                          << ", mean: " << desc0.mean().item<float>()
+                          << ", std: " << desc0.std().item<float>() << std::endl;
+
+                encoding0 = encoding0.index_select(-2, keep0);
+                std::cout << "encoding0 after index_select: " << encoding0.sizes()
+                          << ", mean: " << encoding0.mean().item<float>()
+                          << ", std: " << encoding0.std().item<float>() << std::endl;
+
+                prune0.index_put_({torch::indexing::Slice(), ind0}, prune0.index({torch::indexing::Slice(), ind0}) + 1);
+                std::cout << "prune0 after update: " << prune0.sizes() << std::endl;
+            } else
+            {
+                std::cout << "No points kept after pruning for desc0." << std::endl;
+            }
         }
 
         if (do_point_pruning && desc1.size(-2) > pruning_th)
         {
             auto scores1 = log_assignment_[i]->get_matchability(desc1);
+            std::cout << "scores1 shape: " << scores1.sizes()
+                      << ", mean: " << scores1.mean().item<float>()
+                      << ", std: " << scores1.std().item<float>() << std::endl;
+
             auto prunemask1 = get_pruning_mask(token1, scores1, i);
+            std::cout << "prunemask1 shape: " << prunemask1.sizes()
+                      << ", num_true: " << prunemask1.sum().item<int>()
+                      << ", mean: " << prunemask1.to(torch::kFloat32).mean().item<float>() << std::endl;
+
+            if (prunemask1.dtype() != torch::kBool)
+            {
+                prunemask1 = prunemask1.to(torch::kBool);
+            }
+
             auto where_result = torch::where(prunemask1);
-            const auto& keep1 = where_result[1];
-            ind1 = ind1.index_select(1, keep1);
-            desc1 = desc1.index_select(1, keep1);
-            encoding1 = encoding1.index_select(-2, keep1);
-            prune1.index_put_({torch::indexing::Slice(), ind1}, prune1.index({torch::indexing::Slice(), ind1}) + 1);
+            auto keep1 = where_result[1];
+            std::cout << "keep1 indices: " << keep1.sizes()
+                      << ", num_kept: " << keep1.numel() << std::endl;
+
+            if (keep1.numel() > 0)
+            {
+                ind1 = ind1.index_select(1, keep1);
+                std::cout << "ind1 after index_select: " << ind1.sizes() << std::endl;
+
+                desc1 = desc1.index_select(1, keep1);
+                std::cout << "desc1 after index_select: " << desc1.sizes()
+                          << ", mean: " << desc1.mean().item<float>()
+                          << ", std: " << desc1.std().item<float>() << std::endl;
+
+                encoding1 = encoding1.index_select(-2, keep1);
+                std::cout << "encoding1 after index_select: " << encoding1.sizes()
+                          << ", mean: " << encoding1.mean().item<float>()
+                          << ", std: " << encoding1.std().item<float>() << std::endl;
+
+                prune1.index_put_({torch::indexing::Slice(), ind1}, prune1.index({torch::indexing::Slice(), ind1}) + 1);
+                std::cout << "prune1 after update: " << prune1.sizes() << std::endl;
+            } else
+            {
+                std::cout << "No points kept after pruning for desc1." << std::endl;
+            }
         }
+
+        std::cout << "After pruning:" << std::endl;
+        std::cout << "desc0 shape: " << desc0.sizes()
+                  << ", mean: " << desc0.mean().item<float>()
+                  << ", std: " << desc0.std().item<float>() << std::endl;
+        std::cout << "desc1 shape: " << desc1.sizes()
+                  << ", mean: " << desc1.mean().item<float>()
+                  << ", std: " << desc1.std().item<float>() << std::endl;
     }
 
     // Handle empty descriptor case
@@ -442,10 +570,36 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
     desc1 = desc1.index({torch::indexing::Slice(),
                          torch::indexing::Slice(torch::indexing::None, n)});
 
-    auto [scores, sim] = log_assignment_[i]->forward(desc0, desc1);
+    std::cout << "desc0 shape: " << desc0.sizes()
+              << ", mean: " << desc0.mean().item<float>()
+              << ", std: " << desc0.std().item<float>() << std::endl;
+    std::cout << "desc1 shape: " << desc1.sizes()
+              << ", mean: " << desc1.mean().item<float>()
+              << ", std: " << desc1.std().item<float>() << std::endl;
+    auto scores = log_assignment_[i]->forward(desc0, desc1);
+    std::cout << "scores shape: " << scores.sizes() << ", mean: " << scores.mean().item<float>() << ", std: " << scores.std().item<float>() << std::endl;
+
     auto [m0, m1, mscores0, mscores1] = filter_matches(scores, config_.filter_threshold);
 
-    // Update matches if point pruning was used
+    torch::Tensor m_indices_0, m_indices_1;
+
+    // Create matches and scores tensors
+    if (do_point_pruning)
+    {
+        m_indices_0 = torch::arange(b, device_).unsqueeze(1).repeat({1, m}).flatten();
+        m_indices_1 = m0.flatten();
+
+        auto valid = m_indices_1 >= 0;
+        m_indices_0 = m_indices_0.index({valid});
+        m_indices_1 = m_indices_1.index({valid});
+
+        m_indices_0 = ind0.index({torch::indexing::Slice(), m_indices_0});
+        m_indices_1 = ind1.index({torch::indexing::Slice(), m_indices_1});
+    }
+
+    auto matches = torch::stack({m_indices_0, m_indices_1}, 0);
+
+    // Update m0, m1, mscores tensors
     if (do_point_pruning)
     {
         auto m0_ = torch::full({b, m}, -1, torch::TensorOptions().dtype(torch::kLong).device(device_));
@@ -477,6 +631,7 @@ torch::Dict<std::string, torch::Tensor> LightGlue::forward(
     output.insert("matches1", m1);
     output.insert("matching_scores0", mscores0);
     output.insert("matching_scores1", mscores1);
+    output.insert("matches", matches);
     output.insert("stop", torch::tensor(i + 1));
     output.insert("prune0", prune0);
     output.insert("prune1", prune1);
