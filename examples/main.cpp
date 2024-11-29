@@ -1,13 +1,10 @@
 #include "feature/ALIKED.hpp"
-#include "matcher/LightGlue.hpp"
+#include "matcher/lightglue/matcher.hpp"
 #include <opencv2/opencv.hpp>
 #include <torch/torch.h>
 
 #include <string>
-#include <filesystem>
 #include <iostream>
-
-namespace fs = std::filesystem;
 
 // Helper function to load and preprocess image
 cv::Mat load_image(const std::string& path) {
@@ -160,7 +157,7 @@ int main(int argc, char* argv[]) {
 
         // Initialize models
         auto extractor = std::make_shared<ALIKED>("aliked-n16", device.str());
-        auto matcher = std::make_shared<LightGlue>();
+        auto matcher = std::make_shared<matcher::LightGlue>();
 
         // Move matcher to device
         matcher->to(device);

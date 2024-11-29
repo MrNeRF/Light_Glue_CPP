@@ -93,8 +93,11 @@ set(LIGHTGLUE_HEADERS
         include/feature/get_patches_cuda.h
         include/feature/cuda_helpers.h
 
-        include/matcher/LightGlue.hpp
-        include/matcher/LightGlueModules.hpp
+        include/matcher/lightglue/attention.hpp
+        include/matcher/lightglue/core.hpp
+        include/matcher/lightglue/encoding.hpp
+        include/matcher/lightglue/matcher.hpp
+        include/matcher/lightglue/transformer.hpp
 )
 
 set(LIGHTGLUE_SOURCES
@@ -107,11 +110,11 @@ set(LIGHTGLUE_SOURCES
         src/feature/deform_conv2d_kernel.cu
         src/feature/get_patches_cuda.cu
 
-        src/matcher/LightGlue.cpp
-        src/matcher/LightGlueAssignment.cpp
-        src/matcher/LightGlueBlocks.cpp
-        src/matcher/LightGlueModules.cpp
-        src/matcher/LightGlueTransformer.cpp
+        src/matcher/lightglue/attention.cpp
+        src/matcher/lightglue/core.cpp
+        src/matcher/lightglue/encoding.cpp
+        src/matcher/lightglue/matcher.cpp
+        src/matcher/lightglue/transformer.cpp
         src/feature/blocks.cpp
 )
 
