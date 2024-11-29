@@ -7,7 +7,7 @@ This repository contains a C++ implementation of [LightGlue](https://github.com/
 - Complete C++ implementation of LightGlue using LibTorch
 - CUDA acceleration support
 - Integration with OpenCV for image handling
-- ALIKED feature extractor implementation
+- [ALIKED](https://github.com/MrNeRF/ALIKED_CPP) feature extractor implementation
 - Efficient memory management with move semantics
 - Visualization support for matches and pruning
 
