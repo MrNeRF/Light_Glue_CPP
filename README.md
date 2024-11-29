@@ -18,6 +18,7 @@ This repository contains a C++ implementation of [LightGlue](https://github.com/
 - LibTorch (C++ distribution of PyTorch)
 - OpenCV
 - C++20 compliant compiler
+- git-lfs (for model weights)
 
 ## Building
 
