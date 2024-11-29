@@ -1,6 +1,6 @@
-#include "SDDH.hpp"
+#include "feature/SDDH.hpp"
 
-#include "get_patches.hpp"
+#include "feature/get_patches.hpp"
 #include <torch/torch.h>
 
 using namespace torch::indexing;

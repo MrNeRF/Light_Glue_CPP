@@ -1,4 +1,4 @@
-#include "LightGlueModules.hpp"
+#include "matcher/LightGlueModules.hpp"
 
 LearnableFourierPosEnc::LearnableFourierPosEnc(
     int M, int dim, torch::optional<int> F_dim, float gamma)

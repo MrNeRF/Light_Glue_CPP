@@ -1,4 +1,4 @@
-#include "get_patches_cuda.h"
+#include "feature/get_patches_cuda.h"
 #include <ATen/cuda/CUDAContext.h>
 #include <c10/macros/Macros.h>
 #include <cstdio>

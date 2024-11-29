@@ -1,4 +1,4 @@
-#include "get_patches_cuda.h"
+#include "feature/get_patches_cuda.h"
 #include <math.h>
 #include <torch/torch.h>
 

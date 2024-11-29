@@ -83,34 +83,36 @@ add_definitions(-DLIGHTGLUE_MODELS_DIR="${LIGHTGLUE_MODELS_DIR}")
 
 # Source files
 set(LIGHTGLUE_HEADERS
-        include/ALIKED.hpp
-        include/DKD.hpp
-        include/SDDH.hpp
-        include/blocks.hpp
-	    include/LightGlue.hpp
-        include/LightGlueModules.hpp
-        include/get_patches.hpp
-        include/input_padder.hpp
-        include/deform_conv2d.h
-        include/get_patches_cuda.h
-        include/cuda_helpers.h
+        include/feature/ALIKED.hpp
+        include/feature/DKD.hpp
+        include/feature/SDDH.hpp
+        include/feature/blocks.hpp
+        include/feature/get_patches.hpp
+        include/feature/input_padder.hpp
+        include/feature/deform_conv2d.h
+        include/feature/get_patches_cuda.h
+        include/feature/cuda_helpers.h
+
+        include/matcher/LightGlue.hpp
+        include/matcher/LightGlueModules.hpp
 )
 
 set(LIGHTGLUE_SOURCES
-        src/LightGlue.cpp
-        src/LightGlueAssignment.cpp
-        src/LightGlueBlocks.cpp
-        src/LightGlueModules.cpp
-        src/LightGlueTransformer.cpp
-        src/blocks.cpp
-        src/ALIKED.cpp
-        src/DKD.cpp
-        src/input_padder.cpp
-        src/get_patches.cpp
-        src/SDDH.cpp
-        src/deform_conv2d.cpp
-        src/deform_conv2d_kernel.cu
-        src/get_patches_cuda.cu
+        src/feature/ALIKED.cpp
+        src/feature/DKD.cpp
+        src/feature/input_padder.cpp
+        src/feature/get_patches.cpp
+        src/feature/SDDH.cpp
+        src/feature/deform_conv2d.cpp
+        src/feature/deform_conv2d_kernel.cu
+        src/feature/get_patches_cuda.cu
+
+        src/matcher/LightGlue.cpp
+        src/matcher/LightGlueAssignment.cpp
+        src/matcher/LightGlueBlocks.cpp
+        src/matcher/LightGlueModules.cpp
+        src/matcher/LightGlueTransformer.cpp
+        src/feature/blocks.cpp
 )
 
 # Library target

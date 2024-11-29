@@ -1,4 +1,4 @@
-#include "LightGlueModules.hpp"
+#include "matcher/LightGlueModules.hpp"
 #include <torch/torch.h>
 
 SelfBlock::SelfBlock(int embed_dim, int num_heads, bool flash, bool bias)

@@ -1,4 +1,4 @@
-#include "LightGlueModules.hpp"
+#include "matcher/LightGlueModules.hpp"
 
 TransformerLayer::TransformerLayer(int embed_dim, int num_heads, bool flash, bool bias) {
     // Initialize self-attention block

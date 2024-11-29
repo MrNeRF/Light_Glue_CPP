@@ -21,11 +21,7 @@ public:
     torch::Tensor pad(const torch::Tensor& x) &;
 
     // Move semantics for unpad operation
-    [[maybe_unused]] torch::Tensor unpad(torch::Tensor x) &&;
-    torch::Tensor unpad(const torch::Tensor& x) &;
-
-    void setPadding(std::span<const int> padding);
-    std::span<const int> getPadding() const { return std::span<const int>(pad_); }
+    torch::Tensor unpad(torch::Tensor x) &&;
 
 private:
     int ht_;

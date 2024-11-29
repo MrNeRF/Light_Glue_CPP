@@ -1,6 +1,6 @@
-#include "LightGlue.hpp"
+#include "matcher/LightGlue.hpp"
 
-#include "LightGlueModules.hpp"
+#include "matcher/LightGlueModules.hpp"
 #include <torch/torch.h>
 
 #include <filesystem>
@@ -14,7 +14,6 @@ namespace fs = std::filesystem;
 std::string map_python_to_cpp(const std::string& python_name) {
     std::string cpp_name = python_name;
 
-    // Replace "transformers" with "transformer"
     size_t pos_transformer = cpp_name.find("transformers");
     size_t pos_assignment = cpp_name.find("log_assignment");
     size_t pos_confidence = cpp_name.find("token_confidence");

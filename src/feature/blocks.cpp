@@ -1,6 +1,6 @@
-#include "blocks.hpp"
+#include "feature/blocks.hpp"
 
-#include "deform_conv2d.h"
+#include "feature/deform_conv2d.h"
 
 DeformableConv2d::DeformableConv2d(int in_channels, int out_channels,
                                    int kernel_size, int stride, int padding,

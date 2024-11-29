@@ -1,8 +1,9 @@
-#include "ALIKED.hpp"
-#include "LightGlue.hpp"
+#include "feature/ALIKED.hpp"
+#include "matcher/LightGlue.hpp"
 #include <opencv2/opencv.hpp>
 #include <torch/torch.h>
 
+#include <string>
 #include <filesystem>
 #include <iostream>
 
@@ -21,13 +22,6 @@ cv::Mat load_image(const std::string& path) {
     cv::cvtColor(img, img_rgb, cv::COLOR_BGR2RGB);
     return img_rgb;
 }
-
-// Helper function to draw matches between images
-#include <opencv2/opencv.hpp>
-#include <torch/torch.h>
-
-#include <iostream>
-#include <string>
 
 // Helper function to generate a colormap for pruning visualization
 cv::Scalar cm_prune(float value, float max_value) {
@@ -71,16 +65,16 @@ void draw_matches_and_prune(cv::Mat& img1, cv::Mat& img2,
     }
 
     // Move tensors to CPU
-    auto kpts0_cpu = kpts0.cpu();
-    auto kpts1_cpu = kpts1.cpu();
-    auto matches_cpu = matches.cpu();
-    auto scores_cpu = scores.cpu();
-    auto prune0_cpu = prune0.cpu();
-    auto prune1_cpu = prune1.cpu();
+    const auto kpts0_cpu = kpts0.cpu();
+    const auto kpts1_cpu = kpts1.cpu();
+    const auto matches_cpu = matches.cpu();
+    const auto scores_cpu = scores.cpu();
+    const auto prune0_cpu = prune0.cpu();
+    const auto prune1_cpu = prune1.cpu();
 
     // Debug first few values
-    float max_prune0 = prune0_cpu.flatten().max().item<float>();
-    float max_prune1 = prune1_cpu.flatten().max().item<float>();
+    const float max_prune0 = prune0_cpu.flatten().max().item<float>();
+    const float max_prune1 = prune1_cpu.flatten().max().item<float>();
 
     // Get number of matches from the second dimension
     int num_matches = matches_cpu.size(1);
@@ -126,20 +120,20 @@ void draw_matches_and_prune(cv::Mat& img1, cv::Mat& img2,
     }
 
     // Visualize pruning
-    // for (int i = 0; i < kpts0_cpu.size(0); i++)
-    //{
-    //    float x0 = kpts0_cpu[i][0].item<float>();
-    //    float y0 = kpts0_cpu[i][1].item<float>();
-    //    cv::Scalar color = cm_prune(prune0_cpu[0][i].item<float>(), max_prune0);
-    //    cv::circle(output, cv::Point2f(x0, y0), 5, color, -1, cv::LINE_AA);
-    //}
-    // for (int i = 0; i < kpts1_cpu.size(0); i++)
-    //{
-    //    float x1 = kpts1_cpu[i][0].item<float>() + img1.cols;
-    //    float y1 = kpts1_cpu[i][1].item<float>();
-    //    cv::Scalar color = cm_prune(prune1_cpu[0][i].item<float>(), max_prune1);
-    //    cv::circle(output, cv::Point2f(x1, y1), 5, color, -1, cv::LINE_AA);
-    //}
+    for (int i = 0; i < kpts0_cpu.size(0); i++)
+    {
+        float x0 = kpts0_cpu[i][0].item<float>();
+        float y0 = kpts0_cpu[i][1].item<float>();
+        cv::Scalar color = cm_prune(prune0_cpu[0][i].item<float>(), max_prune0);
+        cv::circle(output, cv::Point2f(x0, y0), 5, color, -1, cv::LINE_AA);
+    }
+     for (int i = 0; i < kpts1_cpu.size(0); i++)
+    {
+        float x1 = kpts1_cpu[i][0].item<float>() + img1.cols;
+        float y1 = kpts1_cpu[i][1].item<float>();
+        cv::Scalar color = cm_prune(prune1_cpu[0][i].item<float>(), max_prune1);
+        cv::circle(output, cv::Point2f(x1, y1), 5, color, -1, cv::LINE_AA);
+    }
 
     // Add text annotation
     std::string text = "Stopped after " + std::to_string(stop_layer) + " layers";

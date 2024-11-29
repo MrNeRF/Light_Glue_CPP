@@ -66,7 +66,7 @@
 // modified from
 // https://github.com/open-mmlab/mmdetection/blob/master/mmdet/ops/dcn/src/deform_conv_cuda.cpp
 
-#include "cuda_helpers.h"
+#include "feature/cuda_helpers.h"
 #include <ATen/ATen.h>
 #include <ATen/cuda/CUDAContext.h>
 #include <ATen/native/cuda/KernelUtils.cuh>
