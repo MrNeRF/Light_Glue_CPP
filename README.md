@@ -1,125 +1,106 @@
-# ALIKED C++ Implementation
+# LightGlue C++ Implementation
 
-This is a C++ implementation of ALIKED (Attentive Local and Implicit Keypoint Detector) using LibTorch and OpenCV. The implementation provides a high-performance, production-ready version of the ALIKED model for keypoint detection and matching.
-For more, join my discord server: https://discord.com/invite/NqwTqVYVmj 
+This repository contains a C++ implementation of [LightGlue](https://github.com/cvg/LightGlue) using LibTorch. LightGlue is a lightweight feature matcher that achieves state-of-the-art performance while being significantly faster than traditional approaches.
 
 ## Features
 
-- Complete C++ implementation of ALIKED model
-- CUDA-accelerated computations
-- OpenCV integration for image processing
-- Real-time keypoint detection and matching
-- Multiple model configurations (aliked-t16, aliked-n16, aliked-n16rot, aliked-n32)
-- Move semantics optimization for better performance
-- Simple tracking demo application
+- Complete C++ implementation of LightGlue using LibTorch
+- CUDA acceleration support
+- Integration with OpenCV for image handling
+- ALIKED feature extractor implementation
+- Efficient memory management with move semantics
+- Visualization support for matches and pruning
 
 ## Prerequisites
 
-- CMake (>= 3.26)
-- CUDA Toolkit (>= 12.1)
-- LibTorch (with CUDA support)
+- CMake >= 3.26
+- CUDA >= 12.1
+- LibTorch (C++ distribution of PyTorch)
 - OpenCV
-- C++20 compatible compiler
+- C++20 compliant compiler
 
-## Directory Structure
+## Building
 
+```bash
+mkdir build && cd build
+cmake ..
+make -j
 ```
-.
-├── include/               # Header files
-├── src/                  # Source files
-├── examples/             # Example applications
-├── models/               # Pre-trained model weights
-├── external/            
-│   └── libtorch/        # LibTorch directory
-└── CMakeLists.txt       # CMake configuration
-```
-
-## Setup Instructions
-
-1. Download and extract LibTorch:
-   ```bash
-   mkdir -p external
-   cd external
-   wget https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.1.0%2Bcu121.zip
-   unzip libtorch-cxx11-abi-shared-with-deps-2.1.0+cu121.zip
-   cd ..
-   ```
-
-2. Build the project:
-   ```bash
-   mkdir build && cd build
-   cmake -DCMAKE_BUILD_TYPE=Release ..
-   make -j$(nproc)
-   ```
 
 ## Usage
 
-The demo application performs keypoint detection and matching between consecutive images:
+The repository includes a sample application demonstrating feature matching between two images:
 
 ```bash
-./aliked /path/to/image/directory [options]
+./LightGlue path/to/image1.jpg path/to/image2.jpg
 ```
 
-### Options
+## Project Structure
 
-- `model_name`: Model configuration (default: "aliked-n32")
-- `device`: Computation device (default: "cuda")
-- `top_k`: Number of top keypoints (-1 for threshold-based selection, default: -1)
-- `scores_th`: Score threshold for keypoint selection (default: 0.2)
-- `n_limit`: Maximum number of keypoints (default: 5000)
-
-### Example Code
-
-```cpp
-#include "ALIKED.hpp"
-
-// Initialize model
-auto model = std::make_shared<ALIKED>("aliked-n32", "cuda");
-
-// Load and process image
-cv::Mat img = cv::imread("image.jpg");
-cv::Mat img_rgb;
-cv::cvtColor(img, img_rgb, cv::COLOR_BGR2RGB);
-
-// Run inference
-auto pred = model->run(img_rgb);
-auto keypoints = pred.at("keypoints");
-auto descriptors = pred.at("descriptors");
+```
+.
+├── include/
+│   ├── feature/         # Feature extraction components
+│   └── matcher/         # LightGlue matcher implementation
+├── src/
+│   ├── feature/         # Feature extraction implementations
+│   └── matcher/         # Matcher implementations
+├── examples/            # Example applications
+├── models/             # Directory for model weights
+└── CMakeLists.txt
 ```
 
-## Model Configurations
+## Implementation Details
 
-| Model Name    | Description                               |
-|--------------|-------------------------------------------|
-| aliked-t16   | Tiny model with 16 descriptor dimensions  |
-| aliked-n16   | Normal model with 16 descriptor dimensions|
-| aliked-n16rot| Rotation-invariant model                  |
-| aliked-n32   | Normal model with 32 descriptor dimensions|
+The implementation follows the original Python architecture while leveraging C++ and LibTorch features:
+- CUDA optimizations for performance
+- Move semantics for efficient memory handling
+- LibTorch's automatic differentiation (though primarily used for inference)
+- OpenCV integration for image processing and visualization
 
-## Performance Optimizations
+## Model Weights
 
-The implementation includes several optimizations:
+Place the model weights in the `models/` directory. The following models are supported:
+- ALIKED feature extractor weights
+- LightGlue matcher weights
 
-- Link Time Optimization (LTO/IPO)
-- CPU architecture-specific optimizations
-- CUDA optimizations
-- Fast math operations
-- Position-independent code
+## Future Development
 
-## Custom Model Directory
+### TODO
+- [ ] Batch Processing Support
+   - Implement efficient batch processing for multiple image pairs
+   - Optimize memory usage for batch operations
+   - Add batch-specific configuration options
 
-You can specify a custom location for model weights during build:
-
-```bash
-cmake -DCMAKE_BUILD_TYPE=Release -DALIKED_MODELS_DIR=/path/to/models ..
-```
+- [ ] Flash Attention Implementation
+   - Add efficient Flash Attention mechanism
+   - Optimize for different GPU architectures
+   - Implement memory-efficient attention patterns
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit pull requests, create issues, or suggest improvements.
+Contributions are welcome! Please feel free to submit pull requests or create issues for bugs and feature requests.
 
-## Acknowledgements
+## Citations
 
-- Original ALIKED paper and implementation
-- LibTorch and PyTorch teams
-- OpenCV team
+If you use this implementation, please cite both the original LightGlue paper and the C++ implementation:
+
+```bibtex
+@inproceedings{lindenberger2023lightglue,
+  author    = {Philipp Lindenberger and
+               Paul-Edouard Sarlin and
+               Marc Pollefeys},
+  title     = {{LightGlue: Local Feature Matching at Light Speed}},
+  booktitle = {ICCV},
+  year      = {2023}
+}
+
+@misc{patas2024lightgluecpp,
+  author    = {Janusch Patas},
+  title     = {LightGlue C++ Implementation},
+  year      = {2024},
+  publisher = {GitHub},
+  journal   = {GitHub Repository},
+  howpublished = {\url{https://github.com/MrNeRF/Light_Glue_CPP}}
+}
+```

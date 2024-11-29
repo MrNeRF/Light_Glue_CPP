@@ -297,27 +297,18 @@ namespace matcher {
 
         // Extract keypoints and descriptors
         // TODO: Batching
-        auto kpts0 = data0.at("keypoints").unsqueeze(0);
-        auto kpts1 = data1.at("keypoints").unsqueeze(0);
-        auto desc0 = data0.at("descriptors").detach().contiguous().unsqueeze(0);
-        auto desc1 = data1.at("descriptors").detach().contiguous().unsqueeze(0);
+        const auto& kpts0_ref = data0.at("keypoints");
+        const auto& kpts1_ref = data1.at("keypoints");
+        const auto& desc0_ref = data0.at("descriptors");
+        const auto& desc1_ref = data1.at("descriptors");
 
-        std::cout << "desc0 shape: " << desc0.sizes()
-                  << ", mean: " << desc0.mean().item<float>()
-                  << ", std: " << desc0.std().item<float>() << std::endl;
-        std::cout << "desc1 shape: " << desc1.sizes()
-                  << ", mean: " << desc1.mean().item<float>()
-                  << ", std: " << desc1.std().item<float>() << std::endl;
+        // Single operation instead of multiple calls
+        auto kpts0 = kpts0_ref.detach().contiguous().unsqueeze(0);
+        auto kpts1 = kpts1_ref.detach().contiguous().unsqueeze(0);
+        auto desc0 = desc0_ref.detach().contiguous().unsqueeze(0);
+        auto desc1 = desc1_ref.detach().contiguous().unsqueeze(0);
 
-        std::cout << "kpts0 shape: " << kpts0.sizes()
-                  << ", mean: " << kpts0.mean().item<float>()
-                  << ", std: " << kpts0.std().item<float>() << std::endl;
-
-        std::cout << "kpts1 shape: " << kpts1.sizes()
-                  << ", mean: " << kpts1.mean().item<float>()
-                  << ", std: " << kpts1.std().item<float>() << std::endl;
-
-        // Get batch size and point counts
+        // Pre-calculate sizes once
         const int64_t b = kpts0.size(0);
         const int64_t m = kpts0.size(1);
         const int64_t n = kpts1.size(1);

@@ -29,37 +29,19 @@ cv::Scalar cm_prune(float value, float max_value) {
     }
     float green = std::min(1.0f, std::max(0.0f, norm_value * 2.0f));
     float red = 1.0f - green;
-    return cv::Scalar(0, green * 255, red * 255);
+    return {0, green * 255, red * 255};
 }
 
 void draw_matches_and_prune(cv::Mat& img1, cv::Mat& img2,
                             const torch::Tensor& kpts0, const torch::Tensor& kpts1,
                             const torch::Tensor& matches, const torch::Tensor& scores,
                             const torch::Tensor& prune0, const torch::Tensor& prune1,
-                            int stop_layer) {
+                            const long stop_layer) {
     int height = std::max(img1.rows, img2.rows);
     int width = img1.cols + img2.cols;
     cv::Mat output(height, width, CV_8UC3);
     img1.copyTo(output(cv::Rect(0, 0, img1.cols, img1.rows)));
     img2.copyTo(output(cv::Rect(img1.cols, 0, img2.cols, img2.rows)));
-
-    // Print tensor sizes
-    std::cout << "kpts0 size: " << kpts0.sizes() << std::endl;
-    std::cout << "kpts1 size: " << kpts1.sizes() << std::endl;
-    std::cout << "matches size: " << matches.sizes() << std::endl;
-    std::cout << "scores size: " << scores.sizes() << std::endl;
-    std::cout << "prune0 size: " << prune0.sizes() << std::endl;
-    std::cout << "prune1 size: " << prune1.sizes() << std::endl;
-
-    // Print tensor values for small tensors
-    if (matches.numel() <= 10)
-    {
-        std::cout << "matches: " << matches << std::endl;
-    }
-    if (scores.numel() <= 10)
-    {
-        std::cout << "scores: " << scores << std::endl;
-    }
 
     // Move tensors to CPU
     const auto kpts0_cpu = kpts0.cpu();
@@ -70,23 +52,23 @@ void draw_matches_and_prune(cv::Mat& img1, cv::Mat& img2,
     const auto prune1_cpu = prune1.cpu();
 
     // Debug first few values
-    const float max_prune0 = prune0_cpu.flatten().max().item<float>();
-    const float max_prune1 = prune1_cpu.flatten().max().item<float>();
+    const auto max_prune0 = prune0_cpu.flatten().max().item<float>();
+    const auto max_prune1 = prune1_cpu.flatten().max().item<float>();
 
     // Get number of matches from the second dimension
-    int num_matches = matches_cpu.size(1);
+    const auto num_matches = matches_cpu.size(1);
 
     const float min_score_threshold = 0.1f;
     // Draw matches
     for (int i = 0; i < num_matches; i++)
     {
         // Get the match index directly
-        int64_t idx = matches_cpu[0][i].item<int64_t>();
-        int64_t idx0 = i;
-        int64_t idx1 = idx;
+        const auto idx = matches_cpu[0][i].item<int64_t>();
+        const auto idx0 = i;
+        const auto idx1 = idx;
 
         // Get the score for this match
-        float score = scores_cpu[0][i].item<float>();
+        const auto score = scores_cpu[0][i].item<float>();
 
         // Skip low confidence matches
         if (score < min_score_threshold)
@@ -101,10 +83,10 @@ void draw_matches_and_prune(cv::Mat& img1, cv::Mat& img2,
             continue;
         }
 
-        float x0 = kpts0_cpu[idx0][0].item<float>();
-        float y0 = kpts0_cpu[idx0][1].item<float>();
-        float x1 = kpts1_cpu[idx1][0].item<float>();
-        float y1 = kpts1_cpu[idx1][1].item<float>();
+        const auto x0 = kpts0_cpu[idx0][0].item<float>();
+        const auto y0 = kpts0_cpu[idx0][1].item<float>();
+        const auto x1 = kpts1_cpu[idx1][0].item<float>();
+        const auto y1 = kpts1_cpu[idx1][1].item<float>();
 
         cv::Point2f pt1(x0, y0);
         cv::Point2f pt2(x1 + img1.cols, y1);
@@ -119,15 +101,15 @@ void draw_matches_and_prune(cv::Mat& img1, cv::Mat& img2,
     // Visualize pruning
     for (int i = 0; i < kpts0_cpu.size(0); i++)
     {
-        float x0 = kpts0_cpu[i][0].item<float>();
-        float y0 = kpts0_cpu[i][1].item<float>();
+        const auto x0 = kpts0_cpu[i][0].item<float>();
+        const auto y0 = kpts0_cpu[i][1].item<float>();
         cv::Scalar color = cm_prune(prune0_cpu[0][i].item<float>(), max_prune0);
         cv::circle(output, cv::Point2f(x0, y0), 5, color, -1, cv::LINE_AA);
     }
      for (int i = 0; i < kpts1_cpu.size(0); i++)
     {
-        float x1 = kpts1_cpu[i][0].item<float>() + img1.cols;
-        float y1 = kpts1_cpu[i][1].item<float>();
+        const auto x1 = kpts1_cpu[i][0].item<float>() + img1.cols;
+        const auto y1 = kpts1_cpu[i][1].item<float>();
         cv::Scalar color = cm_prune(prune1_cpu[0][i].item<float>(), max_prune1);
         cv::circle(output, cv::Point2f(x1, y1), 5, color, -1, cv::LINE_AA);
     }
@@ -184,7 +166,7 @@ int main(int argc, char* argv[]) {
         const auto& matching_scores = matches01.at("matching_scores0");
         const auto& prune0 = matches01.at("prune0");
         const auto& prune1 = matches01.at("prune1");
-        int stop_layer = matches01.at("stop").item<int64_t>();
+        const auto stop_layer = matches01.at("stop").item<int64_t>();
 
         // Print statistics
         std::cout << "Number of keypoints in image 0: " << kpts0.size(0) << std::endl;

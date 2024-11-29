@@ -228,7 +228,7 @@ namespace matcher {
         }
 
         // Fall back to manual implementation
-        auto scale = 1.0f / sqrt(q.size(-1));
+        const auto scale = 1.f / sqrt(q.size(-1));
         auto sim = torch::einsum("...id,...jd->...ij", {q, k}) * scale;
         auto attn = torch::softmax(sim, -1);
         return torch::einsum("...ij,...jd->...id", {attn, v});
