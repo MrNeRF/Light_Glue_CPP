@@ -98,21 +98,21 @@ void draw_matches_and_prune(cv::Mat& img1, cv::Mat& img2,
         cv::circle(output, pt2, 3, color, -1, cv::LINE_AA);
     }
 
-    // Visualize pruning
-    for (int i = 0; i < kpts0_cpu.size(0); i++)
-    {
-        const auto x0 = kpts0_cpu[i][0].item<float>();
-        const auto y0 = kpts0_cpu[i][1].item<float>();
-        cv::Scalar color = cm_prune(prune0_cpu[0][i].item<float>(), max_prune0);
-        cv::circle(output, cv::Point2f(x0, y0), 5, color, -1, cv::LINE_AA);
-    }
-     for (int i = 0; i < kpts1_cpu.size(0); i++)
-    {
-        const auto x1 = kpts1_cpu[i][0].item<float>() + img1.cols;
-        const auto y1 = kpts1_cpu[i][1].item<float>();
-        cv::Scalar color = cm_prune(prune1_cpu[0][i].item<float>(), max_prune1);
-        cv::circle(output, cv::Point2f(x1, y1), 5, color, -1, cv::LINE_AA);
-    }
+    // Visualize pruning (uncomment)
+    //for (int i = 0; i < kpts0_cpu.size(0); i++)
+    //{
+    //    const auto x0 = kpts0_cpu[i][0].item<float>();
+    //    const auto y0 = kpts0_cpu[i][1].item<float>();
+    //    cv::Scalar color = cm_prune(prune0_cpu[0][i].item<float>(), max_prune0);
+    //    cv::circle(output, cv::Point2f(x0, y0), 5, color, -1, cv::LINE_AA);
+    //}
+    // for (int i = 0; i < kpts1_cpu.size(0); i++)
+    //{
+    //    const auto x1 = kpts1_cpu[i][0].item<float>() + img1.cols;
+    //    const auto y1 = kpts1_cpu[i][1].item<float>();
+    //    cv::Scalar color = cm_prune(prune1_cpu[0][i].item<float>(), max_prune1);
+    //    cv::circle(output, cv::Point2f(x1, y1), 5, color, -1, cv::LINE_AA);
+    //}
 
     // Add text annotation
     std::string text = "Stopped after " + std::to_string(stop_layer) + " layers";
