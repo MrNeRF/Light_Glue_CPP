@@ -49,11 +49,6 @@ namespace matcher {
         auto v = qkv.select(-1, 2);
 
         // Apply rotary embeddings
-
-        std::cout << "encoding: " << encoding.sizes() << std::endl;
-        std::cout << "encoding dims: " << encoding.dim() << std::endl;
-        std::cout << "q: " << q.sizes() << std::endl;
-        std::cout << "q dims: " << q.dim() << std::endl;
         q = apply_cached_rotary_emb(encoding, q);
         k = apply_cached_rotary_emb(encoding, k);
 

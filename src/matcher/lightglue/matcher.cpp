@@ -53,34 +53,10 @@ namespace matcher {
         auto scale = 1.0f / std::pow(d, 0.25f);
         mdesc0 = mdesc0 * scale;
         mdesc1 = mdesc1 * scale;
-
-        // Log shapes and statistics
-        std::cout << "mdesc0 shape: " << mdesc0.sizes()
-                  << ", mean: " << mdesc0.mean().item<float>()
-                  << ", std: " << mdesc0.std().item<float>() << std::endl;
-        std::cout << "mdesc1 shape: " << mdesc1.sizes()
-                  << ", mean: " << mdesc1.mean().item<float>()
-                  << ", std: " << mdesc1.std().item<float>() << std::endl;
-
         auto sim = torch::einsum("bmd,bnd->bmn", {mdesc0, mdesc1});
-        std::cout << "sim shape: " << sim.sizes()
-                  << ", mean: " << sim.mean().item<float>()
-                  << ", std: " << sim.std().item<float>() << std::endl;
-
         auto z0 = matchability_->forward(desc0);
         auto z1 = matchability_->forward(desc1);
-        std::cout << "z0 shape: " << z0.sizes()
-                  << ", mean: " << z0.mean().item<float>()
-                  << ", std: " << z0.std().item<float>() << std::endl;
-        std::cout << "z1 shape: " << z1.sizes()
-                  << ", mean: " << z1.mean().item<float>()
-                  << ", std: " << z1.std().item<float>() << std::endl;
-
         auto scores = sigmoid_log_double_softmax(sim, z0, z1);
-        std::cout << "scores shape: " << scores.sizes()
-                  << ", mean: " << scores.mean().item<float>()
-                  << ", std: " << scores.std().item<float>() << std::endl;
-
         return scores;
     }
 
@@ -88,18 +64,7 @@ namespace matcher {
         // Debug input tensor
         auto weight = matchability_->weight.data();
         auto bias = matchability_->bias.data();
-        std::cout << "matchability weight mean: " << weight.mean().item<float>()
-                  << ", std: " << weight.std().item<float>() << std::endl;
-        std::cout << "matchability bias mean: " << bias.mean().item<float>()
-                  << ", std: " << bias.std().item<float>() << std::endl;
-
         auto result = torch::sigmoid(matchability_->forward(desc)).squeeze(-1);
-
-        // Debug output tensor
-        std::cout << "get_matchability -> Output shape: " << result.sizes()
-                  << ", mean: " << result.mean().item<float>()
-                  << ", std: " << result.std().item<float>() << std::endl;
-
         return result;
     }
 
@@ -140,10 +105,6 @@ namespace matcher {
              m,
              torch::indexing::Slice(torch::indexing::None, -1)},
             torch::log_sigmoid(-z1.squeeze(-1)));
-
-        std::cout << "sigmoid_log_double_softmax -> scores shape: " << scores.sizes()
-                  << ", mean: " << scores.mean().item<float>()
-                  << ", std: " << scores.std().item<float>() << std::endl;
 
         return scores;
     }
@@ -271,23 +232,10 @@ namespace matcher {
         int layer_index,
         int num_points) {
 
-        std::cout << "confidences0: " << confidences0.sizes() << std::endl;
-        std::cout << "confidences1: " << confidences1.sizes() << std::endl;
-        std::cout << "layer_index: " << layer_index << std::endl;
-        std::cout << "num_points: " << num_points << std::endl;
-        // Concatenate confidences
         auto confidences = torch::cat({confidences0, confidences1}, -1);
-        std::cout << "confidences: " << confidences.sizes() << std::endl;
-
-        // Get threshold for current layer
         auto threshold = confidence_thresholds_[layer_index];
-        std::cout << "threshold: " << threshold << std::endl;
-
-        // Calculate ratio of confident points
         auto ratio_confident = 1.0f -
                                (confidences < threshold).to(torch::kFloat32).sum().item<float>() / num_points;
-        std::cout << "ratio_confident: " << ratio_confident << std::endl;
-
         return ratio_confident > config_.depth_confidence;
     }
 
@@ -320,24 +268,9 @@ namespace matcher {
         if (data1.contains("image_size"))
             size1 = data1.at("image_size");
 
-        std::cout << "kpts0 shape: " << kpts0.sizes()
-                  << ", mean: " << kpts0.mean().item<float>()
-                  << ", std: " << kpts0.std().item<float>() << std::endl;
-
-        std::cout << "kpts1 shape: " << kpts1.sizes()
-                  << ", mean: " << kpts1.mean().item<float>()
-                  << ", std: " << kpts1.std().item<float>() << std::endl;
         // Normalize keypoints
         kpts0 = matcher::utils::normalize_keypoints(kpts0, size0).clone();
         kpts1 = matcher::utils::normalize_keypoints(kpts1, size1).clone();
-
-        std::cout << "kpts0 shape: " << kpts0.sizes()
-                  << ", mean: " << kpts0.mean().item<float>()
-                  << ", std: " << kpts0.std().item<float>() << std::endl;
-
-        std::cout << "kpts1 shape: " << kpts1.sizes()
-                  << ", mean: " << kpts1.mean().item<float>()
-                  << ", std: " << kpts1.std().item<float>() << std::endl;
 
         // Add scale and orientation if configured
         if (config_.add_scale_ori)
@@ -352,13 +285,6 @@ namespace matcher {
                                -1);
         }
 
-        std::cout << "kpts0 shape: " << kpts0.sizes()
-                  << ", mean: " << kpts0.mean().item<float>()
-                  << ", std: " << kpts0.std().item<float>() << std::endl;
-
-        std::cout << "kpts1 shape: " << kpts1.sizes()
-                  << ", mean: " << kpts1.mean().item<float>()
-                  << ", std: " << kpts1.std().item<float>() << std::endl;
         // Convert to fp16 if mixed precision is enabled
         if (config_.mp && device_.is_cuda())
         {
@@ -372,22 +298,10 @@ namespace matcher {
             desc0 = input_proj_->forward(desc0);
             desc1 = input_proj_->forward(desc1);
         }
-        std::cout << "desc0 shape: " << desc0.sizes()
-                  << ", mean: " << desc0.mean().item<float>()
-                  << ", std: " << desc0.std().item<float>() << std::endl;
-        std::cout << "desc1 shape: " << desc1.sizes()
-                  << ", mean: " << desc1.mean().item<float>()
-                  << ", std: " << desc1.std().item<float>() << std::endl;
 
         // Generate positional encodings
         auto encoding0 = posenc_->forward(kpts0);
         auto encoding1 = posenc_->forward(kpts1);
-        std::cout << "encoding0 shape: " << encoding0.sizes()
-                  << ", mean: " << encoding0.mean().item<float>()
-                  << ", std: " << encoding0.std().item<float>() << std::endl;
-        std::cout << "encoding1 shape: " << encoding1.sizes()
-                  << ", mean: " << encoding1.mean().item<float>()
-                  << ", std: " << encoding1.std().item<float>() << std::endl;
 
         // Initialize pruning if enabled
         const bool do_early_stop = config_.depth_confidence > 0.f;
@@ -413,12 +327,6 @@ namespace matcher {
             if (desc0.size(1) == 0 || desc1.size(1) == 0)
                 break;
 
-            // Process through transformer layer
-            std::cout << "desc0: " << desc0.sizes() << std::endl;
-            std::cout << "encoding0: " << encoding0.sizes() << std::endl;
-            std::cout << "desc1: " << desc1.sizes() << std::endl;
-            std::cout << "encoding1: " << encoding1.sizes() << std::endl;
-
             std::tie(desc0, desc1) = transformers_[i]->forward(
                 desc0, desc1, encoding0, encoding1);
 
@@ -428,12 +336,8 @@ namespace matcher {
             // Early stopping check
             if (do_early_stop)
             {
-                std::cout << "desc0: " << desc0.sizes() << std::endl;
-                std::cout << "desc1: " << desc1.sizes() << std::endl;
                 std::tie(token0, token1) = token_confidence_[i]->forward(desc0, desc1);
 
-                std::cout << "token0: " << token0.value().sizes() << std::endl;
-                std::cout << "token1: " << token1.value().sizes() << std::endl;
                 if (check_if_stop(
                         token0.value().index({torch::indexing::Slice(), torch::indexing::Slice(torch::indexing::None, m)}),
                         token1.value().index({torch::indexing::Slice(), torch::indexing::Slice(torch::indexing::None, n)}),
@@ -443,25 +347,10 @@ namespace matcher {
                 }
             }
 
-            std::cout << "Before pruning:" << std::endl;
-            std::cout << "desc0 shape: " << desc0.sizes()
-                      << ", mean: " << desc0.mean().item<float>()
-                      << ", std: " << desc0.std().item<float>() << std::endl;
-            std::cout << "desc1 shape: " << desc1.sizes()
-                      << ", mean: " << desc1.mean().item<float>()
-                      << ", std: " << desc1.std().item<float>() << std::endl;
-
             if (do_point_pruning && desc0.size(-2) > pruning_th)
             {
                 auto scores0 = log_assignment_[i]->get_matchability(desc0);
-                std::cout << "scores0 shape: " << scores0.sizes()
-                          << ", mean: " << scores0.mean().item<float>()
-                          << ", std: " << scores0.std().item<float>() << std::endl;
-
                 auto prunemask0 = get_pruning_mask(token0, scores0, i);
-                std::cout << "prunemask0 shape: " << prunemask0.sizes()
-                          << ", num_true: " << prunemask0.sum().item<int>()
-                          << ", mean: " << prunemask0.to(torch::kFloat32).mean().item<float>() << std::endl;
 
                 if (prunemask0.dtype() != torch::kBool)
                 {
@@ -470,26 +359,13 @@ namespace matcher {
 
                 auto where_result = torch::where(prunemask0);
                 auto keep0 = where_result[1];
-                std::cout << "keep0 indices: " << keep0.sizes()
-                          << ", num_kept: " << keep0.numel() << std::endl;
 
                 if (keep0.numel() > 0)
                 {
                     ind0 = ind0.index_select(1, keep0);
-                    std::cout << "ind0 after index_select: " << ind0.sizes() << std::endl;
-
                     desc0 = desc0.index_select(1, keep0);
-                    std::cout << "desc0 after index_select: " << desc0.sizes()
-                              << ", mean: " << desc0.mean().item<float>()
-                              << ", std: " << desc0.std().item<float>() << std::endl;
-
                     encoding0 = encoding0.index_select(-2, keep0);
-                    std::cout << "encoding0 after index_select: " << encoding0.sizes()
-                              << ", mean: " << encoding0.mean().item<float>()
-                              << ", std: " << encoding0.std().item<float>() << std::endl;
-
                     prune0.index_put_({torch::indexing::Slice(), ind0}, prune0.index({torch::indexing::Slice(), ind0}) + 1);
-                    std::cout << "prune0 after update: " << prune0.sizes() << std::endl;
                 } else
                 {
                     std::cout << "No points kept after pruning for desc0." << std::endl;
@@ -499,15 +375,7 @@ namespace matcher {
             if (do_point_pruning && desc1.size(-2) > pruning_th)
             {
                 auto scores1 = log_assignment_[i]->get_matchability(desc1);
-                std::cout << "scores1 shape: " << scores1.sizes()
-                          << ", mean: " << scores1.mean().item<float>()
-                          << ", std: " << scores1.std().item<float>() << std::endl;
-
                 auto prunemask1 = get_pruning_mask(token1, scores1, i);
-                std::cout << "prunemask1 shape: " << prunemask1.sizes()
-                          << ", num_true: " << prunemask1.sum().item<int>()
-                          << ", mean: " << prunemask1.to(torch::kFloat32).mean().item<float>() << std::endl;
-
                 if (prunemask1.dtype() != torch::kBool)
                 {
                     prunemask1 = prunemask1.to(torch::kBool);
@@ -515,39 +383,17 @@ namespace matcher {
 
                 auto where_result = torch::where(prunemask1);
                 auto keep1 = where_result[1];
-                std::cout << "keep1 indices: " << keep1.sizes()
-                          << ", num_kept: " << keep1.numel() << std::endl;
-
                 if (keep1.numel() > 0)
                 {
                     ind1 = ind1.index_select(1, keep1);
-                    std::cout << "ind1 after index_select: " << ind1.sizes() << std::endl;
-
                     desc1 = desc1.index_select(1, keep1);
-                    std::cout << "desc1 after index_select: " << desc1.sizes()
-                              << ", mean: " << desc1.mean().item<float>()
-                              << ", std: " << desc1.std().item<float>() << std::endl;
-
                     encoding1 = encoding1.index_select(-2, keep1);
-                    std::cout << "encoding1 after index_select: " << encoding1.sizes()
-                              << ", mean: " << encoding1.mean().item<float>()
-                              << ", std: " << encoding1.std().item<float>() << std::endl;
-
                     prune1.index_put_({torch::indexing::Slice(), ind1}, prune1.index({torch::indexing::Slice(), ind1}) + 1);
-                    std::cout << "prune1 after update: " << prune1.sizes() << std::endl;
                 } else
                 {
                     std::cout << "No points kept after pruning for desc1." << std::endl;
                 }
             }
-
-            std::cout << "After pruning:" << std::endl;
-            std::cout << "desc0 shape: " << desc0.sizes()
-                      << ", mean: " << desc0.mean().item<float>()
-                      << ", std: " << desc0.std().item<float>() << std::endl;
-            std::cout << "desc1 shape: " << desc1.sizes()
-                      << ", mean: " << desc1.mean().item<float>()
-                      << ", std: " << desc1.std().item<float>() << std::endl;
         }
 
         // Handle empty descriptor case
@@ -576,25 +422,11 @@ namespace matcher {
             return output;
         }
 
-        std::cout << "desc0 shape: " << desc0.sizes()
-                  << ", mean: " << desc0.mean().item<float>()
-                  << ", std: " << desc0.std().item<float>() << std::endl;
-        std::cout << "desc1 shape: " << desc1.sizes()
-                  << ", mean: " << desc1.mean().item<float>()
-                  << ", std: " << desc1.std().item<float>() << std::endl;
         // Remove padding and compute assignment
         desc0 = desc0.index({torch::indexing::Slice(), torch::indexing::Slice(0, m), torch::indexing::Slice()});
         desc1 = desc1.index({torch::indexing::Slice(), torch::indexing::Slice(0, n), torch::indexing::Slice()});
 
-        std::cout << "desc0 shape: " << desc0.sizes()
-                  << ", mean: " << desc0.mean().item<float>()
-                  << ", std: " << desc0.std().item<float>() << std::endl;
-        std::cout << "desc1 shape: " << desc1.sizes()
-                  << ", mean: " << desc1.mean().item<float>()
-                  << ", std: " << desc1.std().item<float>() << std::endl;
         auto scores = log_assignment_[i]->forward(desc0, desc1);
-        std::cout << "scores shape: " << scores.sizes() << ", mean: " << scores.mean().item<float>() << ", std: " << scores.std().item<float>() << std::endl;
-
         auto [m0, m1, mscores0, mscores1] = matcher::utils::filter_matches(scores, config_.filter_threshold);
         torch::Tensor m_indices_0, m_indices_1;
 
@@ -611,17 +443,9 @@ namespace matcher {
             m_indices_1 = m0.reshape(-1);
             auto valid_mask = m_indices_1 >= 0;
 
-            // Add debug prints
-            std::cout << "m_indices_0 before mask: " << m_indices_0.sizes() << std::endl;
-            std::cout << "m_indices_1 before mask: " << m_indices_1.sizes() << std::endl;
-            std::cout << "valid_mask shape: " << valid_mask.sizes() << std::endl;
-
             // Apply mask to both tensors using masked_select
             m_indices_0 = m_indices_0.masked_select(valid_mask);
             m_indices_1 = m_indices_1.masked_select(valid_mask);
-
-            std::cout << "m_indices_0 after mask: " << m_indices_0.sizes() << std::endl;
-            std::cout << "m_indices_1 after mask: " << m_indices_1.sizes() << std::endl;
 
             // Use advanced indexing to select final indices
             if (m_indices_0.numel() > 0 && m_indices_1.numel() > 0)
