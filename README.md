@@ -2,6 +2,8 @@
 
 This repository contains a C++ implementation of [LightGlue](https://github.com/cvg/LightGlue) using LibTorch. LightGlue is a lightweight feature matcher that achieves state-of-the-art performance while being significantly faster than traditional approaches.
 
+If you are interested in collaborating on this project, would like to reach out to me, or are considering to contribute to the discussion of the overall NeRF/GS pipeline, please join the Discord: https://discord.gg/NqwTqVYVmj
+
 ## Features
 
 - Complete C++ implementation of LightGlue using LibTorch
