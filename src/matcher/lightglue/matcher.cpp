@@ -321,9 +321,10 @@ namespace matcher {
 
         // Process through transformer layers
         torch::optional<torch::Tensor> token0, token1;
-        int i;
-        for (i = 0; i < config_.n_layers; ++i)
+        int last_layer;
+        for (int i = 0; i < config_.n_layers; ++i)
         {
+            last_layer = i;
             if (desc0.size(1) == 0 || desc1.size(1) == 0)
                 break;
 
@@ -415,7 +416,7 @@ namespace matcher {
             output.insert("matches1", m1);
             output.insert("matching_scores0", mscores0);
             output.insert("matching_scores1", mscores1);
-            output.insert("stop", torch::tensor(i + 1));
+            output.insert("stop", torch::tensor(last_layer + 1));
             output.insert("prune0", prune0);
             output.insert("prune1", prune1);
 
@@ -426,7 +427,7 @@ namespace matcher {
         desc0 = desc0.index({torch::indexing::Slice(), torch::indexing::Slice(0, m), torch::indexing::Slice()});
         desc1 = desc1.index({torch::indexing::Slice(), torch::indexing::Slice(0, n), torch::indexing::Slice()});
 
-        auto scores = log_assignment_[i]->forward(desc0, desc1);
+        auto scores = log_assignment_[last_layer]->forward(desc0, desc1);
         auto [m0, m1, mscores0, mscores1] = matcher::utils::filter_matches(scores, config_.filter_threshold);
         torch::Tensor m_indices_0, m_indices_1;
 
@@ -490,7 +491,7 @@ namespace matcher {
         output.insert("matching_scores0", mscores0);
         output.insert("matching_scores1", mscores1);
         output.insert("matches", matches);
-        output.insert("stop", torch::tensor(i + 1));
+        output.insert("stop", torch::tensor(last_layer + 1));
         output.insert("prune0", prune0);
         output.insert("prune1", prune1);
 
